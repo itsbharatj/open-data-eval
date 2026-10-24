@@ -14,6 +14,11 @@ Perception per frame: person detection/segmentation (YOLO-seg or OWL-ViT, or a V
 (VLM caption) to match against the instruction's mentions; room-type and salient-object tags (CLIP/VLM) for the semantic map;
 door/opening detection from depth. Fuse into the topological memory (node = pose; attributes = tags, people seen with 3-D positions).
 
+Facts from `research/B11-*`: the activity vocabulary is closed (115 activities, all in HA-VLN 1.0's 144 motion-prompt sentences) —
+build the mention→activity matcher as a 144-way classifier (word overlap + embeddings already gives 88–90 %); humans are grey untextured
+body meshes without props, so detect presence, room type and position along the route, and treat the visual activity guess as a
+tiebreaker; train the person detector/segmenter on exact labels rendered with `set_object_semantic_id` on train scans.
+
 Evaluation (val_unseen, GT in `oracle/`): (a) parser accuracy on end-region and mention extraction (LLM-judged against GT path
 region sequence from the MP3D .house file); (b) human-mention → detected-person matching precision/recall; (c) does the end
 mention lie within 3 m of the GT goal (how often)? Target ≥ 0.8 for (b) and report (c).

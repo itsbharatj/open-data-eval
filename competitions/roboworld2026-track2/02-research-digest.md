@@ -132,7 +132,17 @@ offset 0.11 m). Candidate filter 3–6 hops & 5–25.5 m: 100 % recall, median 2
 20 / 6. Instruction-free densest-candidate baseline on val_unseen: SR 0.437, NE 5.1 m (≈ Score 42 with zero collisions) — offline-only.
 1,391 test paths have 908 distinct starts; shared-start paths never share a goal.
 
-**B9 Instruction linguistics**, **B10 Augmentation/ensembling**, **B11 Human-landmark grounding** — *pending*.
+**B11 Human-landmark grounding.** The activity vocabulary is closed: 749 public humans use 331 category strings and 115 distinct
+activities, all verbatim in HA-VLN 1.0's 144-sentence motion-prompt list → matching an instruction mention is a 144-way choice. A
+training-free word-overlap + GloVe matcher picks a correct activity for 88–90 % of human-mentioning instructions (96–97 % when
+restricted to the scan's annotated humans) and false-fires on only 0.9–2.1 % of human-free ones. In 44–47 % of episodes a human on
+the same floor stands within 3 m of the goal; HA-1.0 "End" humans are always within 3 m (median 0.3–0.9 m). The meshes are identical
+grey untextured bodies without props ("a couple" is usually one body), so visual activity recognition is unreliable (≈30–43 % top-1);
+weight presence, room type and position along the route, use the activity guess as a tiebreaker. Compliant grounding channel = a
+person detector on the agent's own frames (exact per-pixel human labels for training via `set_object_semantic_id`). If the Phase-2
+bundle omits test-scan human positions, local runs show no humans at all → ask the organizers now.
+
+**B9 Instruction linguistics**, **B10 Augmentation/ensembling** — *pending*.
 
 ## Strategy & ops
 
