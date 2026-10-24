@@ -1,0 +1,207 @@
+# RoboWorld 2026 Track 2 (HA-VLN 2.0) — winning strategy
+
+Version 1.0 · 2026-10-24 · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
+Companion files: `00-competition-facts.md` (verified facts), `research/` (agent findings), `briefs/` (hand-off briefs per workstream),
+`havln_tools/` (scorer, contract validator, grouping; 13 passing tests), `benchmarks/score_landscape.md`.
+
+---
+
+## 0. The thesis in one page
+
+1. **The score is a product of two things we control separately.** `Score = 100 · Nav · (0.70 + 0.30 · Social)`.
+   `Social = 1` exactly when the tape has **zero** navmesh contacts (walls *and* humans both count — verified in code; the CMA
+   baseline loses ~15 steps per episode to wall-sliding and ends at Score 12.9). `Nav = 0.8·SR + 0.2·3/(3+NE)` and
+   `SR` requires stopping within 3 m **Euclidean** *and* zero contacts. One SR percentage point is worth 0.8 Score; 0.1 m of NE
+   is worth about 0.2–0.3; every 0.01 of collision rate costs about 0.2. **Collision-free execution is a 30 % multiplier and a
+   precondition for every success**, so it is engineered first and verified exhaustively.
+
+2. **Scoring is offline replay of an action tape, so all computation happens on our machines.** The agent can think for minutes
+   per step, use frontier VLMs, run many rollouts, build maps from depth + GPS/compass, and rotate in place for panoramas. The
+   only external constraints are the 500-action budget and the rules on *what information* the agent may read.
+
+3. **The organizers have written (not yet merged) the rules they intend.** Branch `bohan/clarification-Oct14` of the toolkit
+   (verified in git) defines the agent input as episode id, start pose, instruction, **ongoing pose (GPS+compass)** and
+   **sequential egocentric RGB-D from one forward camera**; it **prohibits reading `human_motion.json` at inference**, forbids
+   extra cameras (panoramas only by turning, which costs budget), **allows pretrained models, external datasets and closed-source
+   APIs**, and forbids training on val/test. Top-5 teams must deliver a technical report and may be asked for code.
+   => **Our submission of record must be a compliant closed-loop agent.** Privileged information (scene mesh, navmesh, human
+   placements, GT goals) is used only for training data, local evaluation, and aggregate regression testing.
+
+4. **Within the compliant regime we still hold three decisive advantages:**
+   - *Unlimited test-time compute.* Many rollouts per episode (seeds, prompts, model variants), frontier-VLM reasoning per step,
+     and selection by **self-consistency** of stop positions plus **GPS-detected contact** (position delta < 0.25 m after a
+     MOVE_FORWARD means the step was filtered → a collision happened; GPS is explicitly allowed). No GT is needed for selection.
+   - *A depth+pose occupancy map makes zero collisions achievable.* The agent is a 0.1 m cylinder; the navmesh is already eroded
+     by 0.10 m; humans are static-ish meshes visible in depth (median movement 0.03 m, p90 0.8 m). A local 5 cm grid with
+     0.25–0.35 m inflation (0.6 m around detected people), heading alignment before straight runs, and a per-step forward check
+     removes the wall-hugging that destroys learned agents. Published analysis: 38–57 % of "successful" R2R-CE episodes contain
+     wall contact; a training-free collision guard recovers 7–29 SR points under blocking.
+   - *Structure of the test set.* Test episodes 3k+1..3k+3 are the three instructions of ONE trajectory (verified from the
+     public collision baseline file: identical values in 1,136/1,136 blocks; same start pose). The discrete `R2R_test.json`
+     (1,391 paths, start viewpoint + heading + 3 original 29-word instructions) is public and already in the HA-VLN repo.
+     Using the sibling instructions jointly is a test-*input* trick, not a GT leak; we will ask the organizers and run it only
+     if allowed (expected gain: several SR points).
+
+5. **Expected outcome.** Published HA-VLN-CE state of the art is SR 0.17–0.24 (BEVBert/ETPNav retrained, HCSG May 2026); the
+   baseline is 0.129 / Score 12.9. A compliant agent built as below targets **SR 0.50–0.65, NE 2–3 m, CR≈TCR≈0 → Score 50–65**,
+   which would be first by a wide margin unless another team fields an offline privileged planner (Score 75–90). That risk is
+   covered by (a) getting the clarification merged/confirmed publicly (we ask, in writing, today), and (b) keeping a privileged
+   planner ready as the **only-if-explicitly-allowed** Track B. Headroom check: an oracle-goal, zero-collision tape scores ~95.
+
+---
+
+## 1. What is fixed and what is uncertain
+
+| Fixed (verified) | Uncertain (ask organizers today; see §7) |
+|---|---|
+| Replay scoring in Habitat 0.1.7 image; six actions; 500 cap; STOP required (<500) | Whether the Oct-14 clarification is binding (it is the organizers' written intent; assume **yes**) |
+| Collisions = Habitat `previous_step_collided` per step = any navmesh-filtered MOVE_FORWARD (walls + humans) | Whether sibling-instruction sharing and public R2R test instructions are permitted |
+| Humans = static objects per animation frame; frame advances by wall clock (0.1 s), freezes after ~12 s; order of frames in official replay is unknowable | Whether the Phase 2 bundle ships test-scan human placements (needed by **anyone** to simulate humans locally) and `trajectory_id` |
+| TCR_ep = max(0, count − baseline); baseline file for test is public (93 % zeros) | Official scorer speed (which frames are active) — irrelevant if tapes are collision-free under all frames |
+| Success/NE are 3-D Euclidean (override in `HASimulator/measures.py`) | Exact `/opt/havln-challenge/scoring` behaviour — read it on day 1 inside the image |
+| Test = 1,136 trajectories × 3; 18 R2R test scans; R2R_test.json public | CodaBench outage (down since Oct 21) → Phase 1 calibration window may vanish |
+| Val splits contain GT goals/paths → Phase 1 leaderboard is meaningless; use it only to calibrate our local scorer | Matterport3D approval latency (anecdotally weeks) — zero-float item |
+
+---
+
+## 2. Two tracks, one gate
+
+**Track A — Compliant closed-loop agent (submission of record).** Inputs at inference: instruction, start pose, GPS+compass,
+forward RGB-D. Everything else is forbidden *at inference* but allowed for training/eval.
+
+**Track B — Privileged offline planner (shadow track).** Full scene mesh/navmesh, human placements, exhaustive candidate-goal
+search over the MP3D connectivity graph with discrete-VLN proposers (ScaleVLN/SRDF reach 80–85 SR on R2R test), VLM reranking,
+collision-free planning and kinematic verification. Expected Score 75–90. **Submit only if the organizers explicitly permit
+map/human-privileged offline planning in writing.** Otherwise Track B is used as (i) the oracle upper bound and failure
+analysis for Track A, (ii) the expert for DAgger data, (iii) the regression harness.
+
+**Gate G-rules (by Oct 28):** written organizer answer. Default if silent: Track A only.
+
+---
+
+## 3. Track A architecture (what the agents build)
+
+```
+instruction ──► Instruction parser (LLM) ──► landmark/turn/stop program + human mentions
+                                                          │
+RGB-D + pose ──► Perception: depth → local occupancy (5 cm), person detector/segmenter (YOLO-seg / OWL-ViT / VLM),
+                 room/object tags (VLM or CLIP) ──► Egocentric semantic map + topological memory (nodes = visited poses)
+                                                          │
+                 System 1 policy proposals: fine-tuned monocular VLA (SimpleVLN-Qwen3.5-9B or StreamVLN/NaVILA),
+                 ETP-R1-style waypoint agent fed by in-place rotation panoramas at decision points
+                                                          │
+                 System 2 (frontier VLM, slow): choose among frontier waypoints, decide STOP, re-plan on blockage
+                                                          │
+                 Safety executor: plan on inflated occupancy grid → 15°-quantised headings → per-step forward check;
+                 never issue a MOVE_FORWARD whose 0.25 m segment is within margin of an obstacle; GPS post-check
+                                                          │
+                 K rollouts per episode (seeds/prompts/models) → self-consistency + contact-free selection → tape
+                                                          │
+                 havln_tools contract validation → ZIP → (local replay for aggregate metrics only) → CodaBench
+```
+
+Design rules that fall straight out of the code reading (see `research/A2*`):
+- Only MOVE_FORWARD can collide; turns/looks/STOP are free. If the start pose is inside an obstacle hole, **begin with a TURN**
+  (free re-snap), never with a forward.
+- Keep every 0.25 m forward segment ≥ 0.15–0.20 m from any perceived obstacle; stay centred in corridors; align heading before
+  straight runs; treat detected people as 0.6 m radius discs (covers animation drift for >90 % of humans).
+- Budget: typical paths need 40–80 forwards; one 360° sweep costs 24 turns; plan ≤ 6 sweeps per episode and reserve 60 actions.
+- STOP must be issued (success requires it); stop at the point that maximises P(within 3 m) given the agent's goal belief.
+
+Training (allowed): DAgger/IL on the 10,819 HA-R2R train episodes with a **privileged collision-free expert** (planned on an
+inflated navmesh with humans inserted) so the policy learns human avoidance from supervision; RL fine-tuning with reward
+= success ∧ zero contacts (SimpleVLN showed +7–10 SR from RL on R2R-CE). Val splits are evaluation-only.
+
+Test-time compute (allowed): K = 8–32 rollouts per episode; cluster stop positions; prefer clusters with contact-free tapes;
+tie-break by a learned success verifier trained on train-split rollouts (inputs: the agent's own observations and the instruction).
+
+---
+
+## 4. Track B architecture (shadow / oracle / only-if-allowed)
+
+1. Candidate goals = MP3D connectivity nodes 3–6 hops and 5–25 m from the start (median 24 nodes, ~8 three-metre clusters).
+2. Proposers: ScaleVLN DUET CLIP-H/14 (80/70 test), SRDF (~85 SR), NavGPT-2 XXL, MAGIC-L — all public with precomputed features
+   for the 18 test scans; run greedily, with beam search, and exhaustively over simple paths; instruction de-paraphrased to R2R
+   style and/or original R2R instruction retrieved via start pose + text match.
+3. Human anchors: instruction human-activity sentences paraphrase annotated category strings → direct spatial anchors.
+4. VLM judge over rendered panoramas along top-k paths; fuse by rank voting; ensemble over the 3 (or 6) instructions per trajectory.
+5. Planner: swept-volume navmesh (all 120 frames of every human inserted, agent radius 0.30) → waypoints → quantised actions →
+   exact kinematic replay against all 121 navmeshes (base + 120 frames) → zero flagged steps → STOP.
+Expected: goal top-1 within 3 m 0.75–0.90 → Score 75–90.
+
+---
+
+## 5. Workstreams, owners, and definition of done (details in `briefs/`)
+
+| WS | Name | First deliverable (date) | Done when |
+|---|---|---|---|
+| W0 | Ops & organizer liaison | Register; file the 5 questions (Oct 24); MP3D requests ×3 | Written rules answer; MP3D data on disk |
+| W1 | Data & infra | Image pulled; `/opt/havln-challenge` dumped & diffed; navmesh cache; replay farm (Oct 26) | Local scorer reproduces CMA README numbers; 3,408-episode replay < 30 min |
+| W2 | Safety executor | Depth+pose occupancy planner with per-step guard (Oct 28) | Oracle-goal run on val_unseen: SR ≥ 0.95, TCR = 0 under 4 human-timing regimes |
+| W3 | Perception & grounding | Person/room/object tagging; instruction parser; landmark program (Oct 29) | Human-mention → detected-person matching ≥ 0.8 on val_unseen |
+| W4 | Policies | ETP-R1 port (control mode, no teleport), SimpleVLN/StreamVLN side-env, DAgger data (Nov 3) | Closed-loop val_unseen SR ≥ 0.40 with TCR ≤ 0.02 |
+| W5 | Test-time compute & selection | K-rollout harness, self-consistency, verifier (Nov 8) | +5 SR over single rollout on val_unseen |
+| W6 | Verification & submission | Contract validator (done), 4-regime replay, submission ledger (Oct 27) | Every candidate ZIP: PASS + TCR 0 on all regimes |
+| W7 | Track B shadow + report | Candidate-goal enumerator, proposers, oracle analysis; technical report skeleton (Nov 6) | Oracle numbers feed W4/W5 error analysis; report draft by Nov 25 |
+
+Parallelism: W0–W3 and W7 start now (no MP3D needed for most of W3/W7 code); W1 unblocks W2/W4/W6 once MP3D arrives (fallback:
+start the executor on the public connectivity graphs + synthetic box scenes). Suggested agent count: 2–3 per workstream, with one
+integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominates (see `research/C5*`).
+
+---
+
+## 6. Timeline and gates
+
+| Date | Gate | Acceptance |
+|---|---|---|
+| Oct 24 | G0 | Registered; questions filed; MP3D requested; image pulling; repo scaffold pushed |
+| Oct 26 | M1 | Container boots; `/opt/havln-challenge` read; `havln-validate` PASS on STOP-only ZIPs; scorer spec frozen |
+| Oct 28 | M2 | (MP3D) val_unseen navmesh cache; STOP-only replay matches prediction; CMA export reproduces README |
+| Oct 29 | M3 | Oracle-goal executor SR ≥ 0.90, TCR 0 on val_unseen; Phase 1 calibration submissions if CodaBench is up |
+| Oct 30 | M4 | Phase 2 bundle inventoried (human placements? trajectory_id?); test navmesh cache built; submission #1 (STOP-only anchor) |
+| Nov 6 | G5 | Closed-loop v1 on test (Score ≥ 35); Track B oracle numbers on val_unseen |
+| Nov 13 | G6 | v2 with fine-tuned policy + guard (Score ≥ 50) |
+| Nov 20 | G7 | Architecture freeze; test-time-compute scaling; Score ≥ 58 |
+| Nov 27 | G8 | Final candidate uploaded; 3-day buffer for CodaBench outages; no new experiments after |
+| Dec 1–8 | — | Technical report, reproducibility pack, code for verification |
+
+Submission budget: 100 per phase, 5 per UTC day; plan 70 experimental + 30 reserve; never upload in the last 2 h of a UTC day.
+
+---
+
+## 7. Questions to the organizers (file today as one GitHub issue + Discord post + email)
+
+1. Is the Oct-14 clarification (single forward RGB-D camera, GPS+compass allowed, no `human_motion.json` at inference) the
+   binding rule set for Phase 2? Will it be merged into the README?
+2. May an agent use the three instructions that share a start pose jointly, and the public R2R test instructions?
+3. Will the Phase 2 bundle include human placements for the 18 test scans (required to simulate humans locally) and
+   `trajectory_id`? Is `collision_num_test.json` the scoring baseline?
+4. Is offline computation of tapes with full scene geometry (navmesh planning) permitted, or must planning use only perceived
+   geometry? (This decides Track B.)
+5. Given the CodaBench outage since Oct 21: will Phase 1/2 dates shift, and is there an alternate submission channel?
+
+---
+
+## 8. Risk register (top 10; full list in `research/C2*`)
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| MP3D approval lags weeks | Med–High | Blocks sim work | 3 requests today incl. individual maintainers; lab licence; mesh-free dev on connectivity graphs + synthetic scenes |
+| Bundle omits test-scan human placements | Med | No local humans → collisions | Conservative inflation; HA-VLN-1.0 human priors (70 humans in test scans public); depth perception still sees them in official replay? No — if not shipped, nobody can render them; ask Q3 now |
+| Another team fields privileged offline planner | Med | They score 75–90 | Get rules confirmed publicly (Q1/Q4); keep Track B ready; report transparency |
+| Official human frame ≠ local frame | High | Rare extra contacts | 0.6 m person margin; multi-regime replay; avoid passing within 1 m of people when possible |
+| CodaBench down through deadline | Low–Med | No submissions | Email organizers; keep final ZIP ready by Nov 27; ask Q5 |
+| Wall contacts from quantised headings | Med | SR→0 for episode | Per-step guard, centreline following, GPS post-check and re-plan |
+| 500-action overrun from panorama sweeps | Med | Episode fails | Budget planner: ≤ 6 sweeps, reserve 60 actions, monocular policy as default |
+| Instruction style (112-word LLM text) breaks pretrained policies | High | −10–30 SR | Fine-tune on HA-R2R train; LLM de-paraphrase to route-only text; ensemble both |
+| Overfitting to val_unseen | Med | Test surprise | Val scenes ≠ test scenes; hold out 3 val scans; no prompt tuning on test text |
+| Technical-report/code audit | Med | Award loss | Compliance manifest per submission; privileged tools isolated behind an `oracle` package never imported at inference |
+
+---
+
+## 9. Handing this to agents
+
+Each brief in `briefs/` is self-contained: goal, inputs, pointers into `research/`, interfaces (JSON), tests to run, definition of
+done, and what to report. Every agent must: (1) read `00-competition-facts.md`; (2) never import privileged data in inference
+code paths (`oracle/` package only); (3) validate every ZIP with `havln_tools`; (4) log experiments in `RESULTS.md` with the
+config fingerprint; (5) treat val_unseen as the only test proxy and never touch test instructions for prompt tuning.
