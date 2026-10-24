@@ -33,7 +33,9 @@ class ScoreFormulaTests(unittest.TestCase):
         rows = [EpisodeResult(str(i), distance_to_goal=1.0, collisions_count=(1 if i < 10 else 0)) for i in range(100)]
         m = aggregate(rows, {str(i): 0 for i in range(100)}, split="val_unseen")
         self.assertEqual(m.cr_mode, "human_influenced")
-        self.assertAlmostEqual(m.CR, 10 / 1593)
+        self.assertAlmostEqual(m.CR, 10 / (100 * 1593 / 1839))
+        full = [EpisodeResult(str(i), distance_to_goal=1.0, collisions_count=(1 if i < 10 else 0)) for i in range(1839)]
+        self.assertAlmostEqual(aggregate(full, {}, split="val_unseen").CR, 10 / 1593)
 
     def test_perfect_run_scores_100(self):
         self.assertAlmostEqual(composite_score(1.0, 0.0, 0.0, 0.0), 100.0)
@@ -54,8 +56,22 @@ class ScoreFormulaTests(unittest.TestCase):
         self.assertEqual(episode_metrics(r, baseline_collisions=5)["TCR"], 0)
         far = EpisodeResult("8", distance_to_goal=3.01, collisions_count=0)
         self.assertEqual(episode_metrics(far, 0)["SR"], 0)
+        # habitat-lab 0.1.7 Success: distance_to_target < SUCCESS_DISTANCE (strict)
         edge = EpisodeResult("9", distance_to_goal=3.0, collisions_count=0)
-        self.assertEqual(episode_metrics(edge, 0)["SR"], 1)
+        self.assertEqual(episode_metrics(edge, 0)["SR"], 0)
+        just_in = EpisodeResult("10", distance_to_goal=2.999, collisions_count=0)
+        self.assertEqual(episode_metrics(just_in, 0)["SR"], 1)
+        # a 500-action tape that never issued STOP cannot succeed
+        no_stop = EpisodeResult("11", distance_to_goal=1.0, collisions_count=0, stop_called=False)
+        self.assertEqual(episode_metrics(no_stop, 0)["SR"], 0)
+
+    def test_subset_cr_is_scale_invariant(self):
+        full = [EpisodeResult(str(i), 5.0, 1 if i % 10 == 0 else 0) for i in range(1, 1840)]
+        sub = [r for r in full if int(r.episode_id) <= 184]
+        m_full = aggregate(full, {}, split="val_unseen")
+        m_sub = aggregate(sub, {}, split="val_unseen")
+        self.assertAlmostEqual(m_full.CR, 183 / 1593)
+        self.assertAlmostEqual(m_sub.CR, m_full.CR, delta=0.01)
 
     def test_aggregate_cr_modes(self):
         rows = [EpisodeResult(str(i), distance_to_goal=1.0, collisions_count=(1 if i < 10 else 0)) for i in range(100)]
@@ -63,7 +79,8 @@ class ScoreFormulaTests(unittest.TestCase):
         m_all = aggregate(rows, base, split="val_unseen", cr_mode="all")
         m_hi = aggregate(rows, base, split="val_unseen", cr_mode="human_influenced")
         self.assertAlmostEqual(m_all.CR, 0.10)
-        self.assertAlmostEqual(m_hi.CR, 10 / HUMAN_INFLUENCED["val_unseen"])
+        # subset of 100 episodes -> denominator scaled to 100 * 1593/1839
+        self.assertAlmostEqual(m_hi.CR, 10 / (100 * HUMAN_INFLUENCED["val_unseen"] / SPLIT_SIZES["val_unseen"]))
         self.assertEqual(HUMAN_INFLUENCED["val_seen"], 682)
         self.assertEqual(HUMAN_INFLUENCED["test"], 2859)
         # beta from HASimulator/metric.py reproduces the organizer table

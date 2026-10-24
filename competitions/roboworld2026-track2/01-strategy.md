@@ -1,6 +1,6 @@
 # RoboWorld 2026 Track 2 (HA-VLN 2.0) — winning strategy
 
-Version 1.1 · 2026-10-24 (evening) · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
+Version 1.2 · 2026-10-24 (night) · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
 Companion files: `00-competition-facts.md` (verified facts), `research/` (agent findings), `briefs/` (hand-off briefs per workstream),
 `havln_tools/` (scorer, contract validator, grouping; 13 passing tests), `benchmarks/score_landscape.md`.
 
@@ -130,6 +130,18 @@ RGB-D + pose ──► Perception: depth → local occupancy (5 cm), person dete
                  havln_tools contract validation → ZIP → (local replay for aggregate metrics only) → CodaBench
 ```
 
+Executor rules (`research/C7*`, `A2*`, `A5*`): build a persistent per-floor height map from depth plus the exact simulator pose
+(filter ceiling points; vln-safe's 8-frame memory lost veto precision .925 → .125 by keeping them); the level camera sees floor only
+from 1.25 m out (0.335 m with a 30° look-down), so look down before the first forwards; every MOVE_FORWARD passes a hard check at
+2.5 cm samples (≥ 0.25 m from static geometry, ≥ 0.20 m from unseen cells, ≥ 0.40 m plus a motion margin from people and their
+observed trails); plan with a 24-heading lattice anchored at the start yaw (one angled step shifts 6.5 cm sideways, enough to centre
+in 0.7 m doors); detect contact exactly from the pose change (moved < 0.24998 m — the naive "did not move" test misses 78–88 % of
+contact episodes) and respond with a no-repeat memory, an escape away from the wall and a re-plan, never a forced step. A known
+route needs ~73 actions at the median (max 132 incl. a 24-turn opening spin). The privileged teacher plans on the *intersection* of
+all 121 navmeshes with a clearance cost (not a hard 0.3–0.4 m inflation, which closes 0.7–0.8 m doors) and must replace the VLN-CE
+ShortestPathFollower as the DAgger teacher (that follower steps with up to 15° heading error and cuts corners; it collides in 18–26 %
+of episodes even with the true goal). Verify the camera height in the image (Habitat default 1.25 m, not 1.5 m).
+
 Design rules that fall straight out of the code reading (see `research/A2*`):
 - Only MOVE_FORWARD can collide; turns/looks/STOP are free. If the start pose is inside an obstacle hole, **begin with a TURN**
   (free re-snap), never with a forward.
@@ -141,15 +153,22 @@ Design rules that fall straight out of the code reading (see `research/A2*`):
   and give detected people two-sided motion margins (0.6 m disc covers > 90 % of humans; only ~8 % of paths are timing-sensitive).
 - STOP must be issued (success requires it); stop at the point that maximises P(within 3 m) given the agent's goal belief.
 
-Backbone ranking for the compliant agent (evidence in `research/B2*`, `B3*`, `A6*`): (1) **NavGPT-3 8B** (Oct 2026; public
-weights; Habitat 0.1.7; exactly our 0.25 m / 15° / 0.1 m-radius action space; SR 76.9 alone and 79–81.5 with a frontier
-planner on the full R2R-CE val_unseen) — monocular, so no panorama budget; (2) **SimpleVLN Qwen3.5-9B RL** (76.7; single
-camera; vLLM-served; Habitat 0.3.3 side-env needed); (3) **ETP-R1** (65.3; 0.1.7-native; needs 12 views → an in-place sweep
-of ~28 turns per decision point, affordable ≤ 5 times per episode); (4) StreamVLN / NaVILA / OmniNav as ensemble diversity.
+Backbone ranking for the compliant agent (`research/C9*`, `C8*`, `B2*`, `A6*`): (1) **SimpleVLN** (Qwen3.5-4B/9B-RL, Qwen3-VL-8B-RL:
+76.3 / 76.7 / 74.4 SR on R2R-CE val_unseen) — the only top open policy that already fits the rules: one forward RGB camera at
+HFOV 90 and text action chunks in exact 0.25 m / 15° steps; ~300-line client against vLLM; no training code released, so
+fine-tuning uses generic Qwen-VL SFT with the prompt rebuilt from its `eval.py`. (2) **ETP-R1** (65.3; Habitat 0.1.7; DAgger +
+GRPO code released) — its 12-view rig equals the official camera, so an in-place ring of 22 TURNs per decision reproduces its
+inputs exactly; it averages 92 primitives per episode (p90 201), so with sweeps expect ~225–270 actions (p90 420–470) → a
+budget-aware sweep/STOP rule is mandatory; its GRPO reward has no collision term and must be replaced. (3) StreamVLN / NaVILA as
+ensemble diversity. **Not compliant as published:** NavGPT-3 (4 simultaneous 400×400 HFOV-120 cameras + teleport execution),
+OmniNav (3 cameras), Uni-NaVid (HFOV 120) — corrects B3/B2.
 Measured on vln-safe's logs (same physics as our scorer, human-free R2R-CE val_unseen): collision-free success ETP-R1 37.7
-(raw 64.6), StreamVLN 34.4, ETPNav 34.0, OmniNav 29.1, CMA 17.8; a training-free depth guard lifts ETP-R1 to 50.1 and a
-navmesh-aware guard to 61.3. **At least one of ETP-R1 / StreamVLN / OmniNav stops within 3 m in 87 % of episodes** (91.5 % with
-six agents) while the best single agent manages 67.5 % → rollout diversity plus good selection is where the SR comes from.
+(raw 64.6), StreamVLN 34.4, ETPNav 34.0, OmniNav 29.1, CMA 17.8; a training-free depth guard lifts ETP-R1 to 50.1; a
+navmesh-oracle guard reaches 61.3 but **is privileged at inference** → replace it with **Guard v2**: a depth+GPS occupancy map,
+a learned step-collision predictor trained on navmesh labels from train scans, a person keep-out zone, and an A* escape when a
+step is vetoed. Taking the first contact-free run among three guarded agents gives 62.4 % collision-free SR (`research/C8*`).
+**At least one of ETP-R1 / StreamVLN / OmniNav stops within 3 m in 87 % of episodes** while the best single agent manages 67.5 %
+→ diversity plus selection is where SR comes from, but *selection across rollouts is a gray lever* (see §2).
 Instruction handling: HA-R2R text is ~140–170 word-pieces; ETPNav truncates at 80 and ETP-R1 at 150 (the stop clause is lost) —
 raise limits or feed an LLM-condensed route-only paraphrase alongside the original.
 
@@ -197,12 +216,12 @@ material is usable at inference under the Oct-14 rules** — it is for Track B a
 |---|---|---|---|
 | W0 | Ops & organizer liaison | Register; file the 5 questions (Oct 24); MP3D requests ×3 | Written rules answer; MP3D data on disk |
 | W1 | Data & infra | Image pulled; `/opt/havln-challenge` dumped & diffed; navmesh cache; replay farm (Oct 26) | Local scorer reproduces CMA README numbers; 3,408-episode replay < 30 min |
-| W2 | Safety executor | Depth+pose occupancy planner with per-step guard (Oct 28) | Oracle-goal run on val_unseen: SR ≥ 0.95, TCR = 0 under 4 human-timing regimes |
+| W2 | Safety executor | Depth+pose occupancy planner with per-step guard (Oct 28) | Compliant executor given the GT goal point on val_unseen: SR ≥ 0.90 → 0.94, contact episodes ≤ 1 % under 9 human-timing regimes (privileged teacher: SR ≥ 0.97, zero contacts on all 121 navmeshes) |
 | W3 | Perception & grounding | Person/room/object tagging; instruction parser; landmark program (Oct 29) | Human-mention → detected-person matching ≥ 0.8 on val_unseen |
-| W4 | Policies | ETP-R1 port (control mode, no teleport), SimpleVLN/StreamVLN side-env, DAgger data (Nov 3) | Closed-loop val_unseen SR ≥ 0.40 with TCR ≤ 0.02 |
-| W5 | Test-time compute & selection | K-rollout harness, self-consistency, verifier (Nov 8) | +5 SR over single rollout on val_unseen |
+| W4 | Policies | SimpleVLN client + Guard v2 (Nov 2); ETP-R1 port with turn-in-place sweeps (Nov 5); DAgger data (Nov 3) | Closed-loop K=1 val_unseen clean SR ≥ 0.40 by Nov 9, ≥ 0.46 by Nov 16, ≥ 0.50 at freeze |
+| W5 | Test-time compute & selection | Per-decision voting + stop check (allowed); K-rollout harness behind a flag (gray) (Nov 8) | +3–5 SR from allowed levers; K>1 gains measured and reported separately |
 | W6 | Verification & submission | Contract validator (done), 4-regime replay, submission ledger (Oct 27) | Every candidate ZIP: PASS + TCR 0 on all regimes |
-| W7 | Track B shadow + report | Candidate-goal enumerator, proposers, oracle analysis; technical report skeleton (Nov 6) | Oracle numbers feed W4/W5 error analysis; report draft by Nov 25 |
+| W7 | Track B shadow + report | Candidate-goal enumerator, proposers, oracle analysis; technical report skeleton (Nov 6) | Oracle numbers feed W4/W5 error analysis; all calibrators/verifiers fitted on scan-disjoint TRAIN folds (never val); report draft by Nov 25 |
 
 Parallelism: W0–W3 and W7 start now (no MP3D needed for most of W3/W7 code); W1 unblocks W2/W4/W6 once MP3D arrives (fallback:
 start the executor on the public connectivity graphs + synthetic box scenes). Suggested agent count: 2–3 per workstream, with one
@@ -217,11 +236,11 @@ integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominat
 | Oct 24 | G0 | Registered; questions filed; MP3D requested; image pulling; repo scaffold pushed |
 | Oct 26 | M1 | Container boots; `/opt/havln-challenge` read; `havln-validate` PASS on STOP-only ZIPs; scorer spec frozen |
 | Oct 28 | M2 | (MP3D) val_unseen navmesh cache; STOP-only replay matches prediction; CMA export reproduces README |
-| Oct 29 | M3 | Oracle-goal executor SR ≥ 0.90, TCR 0 on val_unseen; Phase 1 calibration submissions if CodaBench is up |
+| Oct 29 | M3 | Executor given the GT goal: SR ≥ 0.90 on val_unseen; Phase 1 calibration set if CodaBench is up: STOP-only (exact predicted Score 8.473053 on val_unseen if Euclidean), the official CMA export (its CR column — 0.684 vs 0.593 — reveals which image build CodaBench runs), our genuine v0 tape, and the same tape resubmitted (scorer noise). No GT-built tapes. |
 | Oct 30 | M4 | Phase 2 bundle inventoried (human placements? trajectory_id?); test navmesh cache built; submission #1 (STOP-only anchor) |
-| Nov 6 | G5 | Closed-loop v1 on test (Score ≥ 35); Track B oracle numbers on val_unseen |
-| Nov 13 | G6 | v2 with fine-tuned policy + guard (Score ≥ 50) |
-| Nov 20 | G7 | Architecture freeze; test-time-compute scaling; Score ≥ 58 |
+| Nov 2–6 | G5 | Zero-shot SimpleVLN + training-free guard on test (SR 0.28–0.36, Score 25–32); Track B oracle numbers on val_unseen |
+| Nov 9–13 | G6 | + learned Guard v2 and HA-R2R fine-tune (SR 0.40–0.47, Score 36–43) |
+| Nov 16–20 | G7 | + DAgger, per-decision voting, stop check (SR 0.46–0.54, Score 42–50); freeze Nov 20; final K=1 target SR 0.50–0.60 → Score 46–55 (60–66 if K>1 is allowed) |
 | Nov 27 | G8 | Final candidate uploaded and scored; 3-day buffer for CodaBench outages; no new experiments after. Treat the close as **Nov 30 15:59 UTC** until the live site says otherwise |
 | Dec 1–8 | — | Technical report, reproducibility pack, code for verification |
 
@@ -314,3 +333,30 @@ inflation zones, STOP rejected because depth hit a background wall, instruction 
 
 Compliance note: the test-scan assets above are **privileged at inference** under the Oct-14 rules. They serve Track B,
 oracle analysis, and the organizer questions — not the compliant agent's inference path.
+
+
+---
+
+## 12. Measurement ladder and validation protocol (`research/C6*`, `C10*`)
+
+Dev/lockbox splits of val_unseen are in `data/val_unseen_splits.json` (dev 8 scans / 1,413 episodes; lockbox 3 scans / 426 episodes,
+at most 4 logged looks; quick 306; smoke 60). Anything fitted (verifier, calibrator) trains on scan-disjoint train folds, never on val.
+
+| Stage | What it measures | Expected |
+|---|---|---|
+| L0 STOP-only tape | scorer distance semantics | val_unseen Score 8.473053 if Euclidean (5.04 if geodesic) |
+| L1 CMA replay | local scorer = official | 12.945387 ± 1.0 |
+| L2 privileged executor, GT goal | teacher quality | SR 0.97–0.995, zero contacts on all 121 navmeshes |
+| L3 compliant executor, GT goal point | perception + control | clean SR ≥ 0.90 → 0.94; contact episodes ≤ 1 % |
+| L5 single rollout (K=1) | the clean configuration | clean SR 0.50–0.62 |
+| L6 best-of-K oracle | headroom for selection | 0.72–0.85 at K = 8 |
+| L7 K rollouts + selection (gray) | realised selection gain | 0.58–0.70 |
+| L8 worst human-timing replay | timing robustness | episodes flipping to colliding ≤ 0.5 % |
+
+Statistics: single-system SR on val_unseen carries ±2.8 pp (95 %); paired comparisons detect 1.1 / 1.7 / 2.4 / 3.3 pp when variants
+differ on 2 / 5 / 10 / 20 % of episodes; predicting test from val carries ±8 pp from building variation — promise paired gains, not
+absolute test numbers. Leakage tests: shifting every val goal by 100 m must leave tapes bit-identical; the agent process is isolated
+with every file open audited; CI fails if test-instruction text appears in any prompt. Rejected: C2's "disjoint-subset A/B"
+Phase 2 uploads (that is leaderboard probing). Test program (C10): L1 unit tests on every PR, L2 container tests nightly, L3 benchmarks
+with expected bands, L4 timing-robustness release gate (TCR spread < 0.005), L5 CodaBench calibration, and a compliance suite (import
+rules, file-access audit, tape byte-identical with privileged files removed, training-data hygiene, per-submission manifest).

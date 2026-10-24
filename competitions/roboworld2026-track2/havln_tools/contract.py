@@ -13,6 +13,7 @@ the README "Submission Format" + FAQ Q6 rules:
 from __future__ import annotations
 
 import json
+import stat
 import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Dict, Iterable, List, Mapping, Sequence
@@ -40,7 +41,12 @@ def check_actions(actions: Sequence[str]) -> None:
 
 def check_rows(rows: Iterable[Mapping], expected_ids: Iterable[str]) -> None:
     rows = list(rows)
-    ids = [str(r["episode_id"]) for r in rows]
+    for r in rows:
+        if not isinstance(r.get("episode_id"), str):
+            raise ContractError(f"episode_id must be a string, got {type(r.get('episode_id')).__name__}: {r.get('episode_id')!r}")
+        if not isinstance(r.get("actions"), list):
+            raise ContractError(f"episode {r['episode_id']}: actions must be a list")
+    ids = [r["episode_id"] for r in rows]
     expected = set(str(i) for i in expected_ids)
     if len(ids) != len(set(ids)):
         dup = sorted({i for i in ids if ids.count(i) > 1})
@@ -81,9 +87,13 @@ def write_submission(out_dir: Path, predictions: Mapping[str, Mapping[str, Seque
         (out_dir / name).write_text(json.dumps(payload, indent=None, separators=(",", ":"), allow_nan=False) + "\n")
         names.append(name)
     zip_path = out_dir / zip_name
+    # Byte-reproducible archive: fixed member timestamps and attributes so identical predictions hash identically.
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for name in names:
-            zf.write(out_dir / name, arcname=name)
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            zf.writestr(info, (out_dir / name).read_bytes())
     return zip_path
 
 
@@ -95,6 +105,8 @@ def validate_submission_zip(zip_path: Path, expected_ids: Mapping[str, Iterable[
             p = PurePosixPath(info.filename)
             if info.is_dir() or len(p.parts) != 1 or p.is_absolute() or ".." in p.parts or "\\" in info.filename:
                 raise ContractError(f"unsafe or nested zip member: {info.filename!r}")
+            if stat.S_ISLNK(info.external_attr >> 16):
+                raise ContractError(f"symlink zip member: {info.filename!r}")
             if not info.filename.lower().endswith(".json"):
                 continue  # harmless extra root files are allowed
             data = json.loads(zf.read(info.filename))

@@ -142,7 +142,15 @@ weight presence, room type and position along the route, use the activity guess 
 person detector on the agent's own frames (exact per-pixel human labels for training via `set_object_semantic_id`). If the Phase-2
 bundle omits test-scan human positions, local runs show no humans at all → ask the organizers now.
 
-**B9 Instruction linguistics**, **B10 Augmentation/ensembling** — *pending*.
+**B10 Augmentation, ensembling, test-time compute.** Training compute gives the big compliant gains: DAgger with a clearance-keeping
+privileged expert + learned step-collision shield ≈ +5–12 SR; HA-style instruction augmentation (organizers' prompt is public; filter
+with nDTW ≥ 0.9) ≈ +2–6; RL rewarded on success ∧ zero collisions ≈ +2–8. Sibling-instruction voting adds only +2–2.3 for modern
+continuous agents (failures are correlated: P(sibling fails | fail) 0.50–0.63); naive agent voting adds nothing (majority 67.1 % =
+best single 67.5 %) — only a learned selector captures the 87–97 % union. Compliant levers: stop verifier with return to best visited
+node +2–4, per-step ensembles +1–3, rewritten own-instruction runs +1–3, uncertainty-gated look-ahead +1–4 → ≈ +8–18 SR total,
+putting the test at ~0.50–0.62 SR. Val_unseen SR standard error ≈ 1.6 pp.
+
+**B9 Instruction linguistics** — *pending*.
 
 ## Strategy & ops
 
@@ -155,5 +163,33 @@ content-addressed caches; Redis job queue; exporter-style fingerprints; dual-mod
 Outage-independent anchors: reproduce README CMA numbers locally; STOP-only submission with an exactly predictable Score. Gates G0–G8
 with acceptance criteria; 23-item risk register; Nov 7 mesh-free fallback trigger; freeze Nov 20; final upload Nov 27.
 
-**C3 Rules**, **C5 Organization**, **C6 Experiments**, **C7 Executor**, **C8 Goal inference**, **C9 Closed-loop plan**, **C10 Tests** — *pending*.
+**C3 Rules & defensibility.** PR #2 treated as binding; principle "information locality". 22-technique compliance table: 8 clearly
+allowed, 6 gray (multi-rollout selection, cross-episode memory, sibling instructions, camera changes, test-building renders), 8
+prohibited. Ready-to-post GitHub issue and private email in `03-organizer-questions.md`. If no answer by Nov 7, freeze the clean config.
+
+**C6 Experiment protocol.** Nine-stage measurement ladder (L0 STOP-only 8.473053 … L8 timing), scan-disjoint dev/lockbox splits
+(`data/val_unseen_splits.json`), power analysis (±2.8 pp single-system; ±8 pp val→test), four-submission Phase-1 calibration set,
+leakage tests, 11 dashboards. K=1 must stand alone; report K>1 separately. Rejects disjoint-subset A/B uploads as probing.
+
+**C7 Executor design.** Exact Magnum motion maths (float32 emulator matches the simulator); compliant height-map executor with hard
+2.5 cm-sampled checks (0.25 m static / 0.20 m unseen / 0.40 m + motion margin people), look-down-first, 24-heading lattice, exact
+pose-based contact detection with escape + no-repeat; privileged teacher on the intersection of 121 navmeshes with clearance cost
+(replace ShortestPathFollower); ~0.5 s/episode CPU verification; 20-row failure-mode table; budget ~73 actions median.
+
+**C8 Goal inference.** A-ST single closed-loop tape (default): policy pool behind the shield, VLM stop check over own memory, brief
+visit of a second-best endpoint within budget → SR 0.55–0.70, Score 52–63. A-MR 8–16 rollouts (gray): cluster stops in GPS, fuse votes
++ judge, Bayes-optimal stop → SR 0.65–0.77, Score 62–71. First contact-free run among three guarded agents: 62.4 % clean SR.
+38 % of val_unseen routes pass within 0.3 m of a human → people detection is mandatory. B (privileged, permission only): 78–86 % goal
+accuracy with own instruction (Score ~77), 82–89 % with siblings, 85–92 % with original R2R text (red line).
+
+**C9 Closed-loop bring-up.** SimpleVLN first (fits the rules as published), ETP-R1 in parallel (22-turn rings; budget math), Guard v2,
+collision-free teacher → SFT → 3 DAgger rounds → fine-tune on zero-collision successes → optional GRPO; 12–14 coding agents,
+5–10k GPU-hours; dated expectations Nov 2 (25–32) → Nov 9 (36–43) → Nov 16 (42–50) → freeze Nov 20 (46–55; 60–66 if K>1 allowed).
+
+**C10 Tests & benchmarks.** Found and fixed in `havln_tools`: strict < 3 m success, STOP required, subset-scaled CR denominator,
+id-block grouping fallback, strict episode_id/actions types, symlink rejection, byte-reproducible ZIPs (now 20 passing tests).
+Program: L1 unit tests per PR, L2 nightly container tests (incl. sensor parity: camera height 1.25 m default vs 1.5 m assumption),
+L3 benchmarks with bands, L4 timing gate, L5 CodaBench calibration, compliance suite C1–C7; free scene 17DRP5sb8fy for bring-up.
+
+**C5 Organization** — *pending*.
 **C4 Leaderboard-feedback math** — not run separately; B7 covers the information-theoretic estimate and the recommendation (no probing).

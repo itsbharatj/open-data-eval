@@ -55,18 +55,25 @@ HUMAN_INFLUENCED: Dict[str, int] = {
 
 @dataclass(frozen=True)
 class EpisodeResult:
-    """Raw replay outcome for one episode."""
+    """Raw replay outcome for one episode.
+
+    `stop_called` mirrors habitat-lab's `task.is_stop_called`: a 500-action tape that never issues STOP
+    cannot succeed (habitat/tasks/nav/nav.py Success measure). Success distance is STRICT (< 3.0 m, nav.py:535).
+    """
 
     episode_id: str
-    distance_to_goal: float  # metres, at STOP / step limit
+    distance_to_goal: float  # metres (3-D Euclidean under the HASimulator override), at STOP / step limit
     collisions_count: int  # steps with previous_step_collided == True
+    stop_called: bool = True
     stopped_within_success_distance: Optional[bool] = None
 
     @property
     def success_geom(self) -> bool:
+        if not self.stop_called:
+            return False
         if self.stopped_within_success_distance is not None:
             return bool(self.stopped_within_success_distance)
-        return self.distance_to_goal <= SUCCESS_DISTANCE_M
+        return self.distance_to_goal < SUCCESS_DISTANCE_M
 
 
 @dataclass(frozen=True)
@@ -138,9 +145,11 @@ def aggregate(
     ne = ne_sum / n
     tcr = tcr_sum / n
     if cr_mode == "human_influenced":
-        denom = HUMAN_INFLUENCED.get(split)
-        if denom is None:
+        if split not in HUMAN_INFLUENCED:
             raise ValueError(f"unknown split {split!r} for human-influenced normalisation")
+        # Scale the denominator to the subset size so golden sets / per-scan tables stay comparable:
+        # for the full split this is exactly beta*L (682 / 1,593 / 2,859).
+        denom = HUMAN_INFLUENCED[split] * n / SPLIT_SIZES[split]
         cr = cr_sum / denom  # not clipped: can exceed 1 when non-influenced episodes also collide
     elif cr_mode == "all":
         cr = cr_sum / n

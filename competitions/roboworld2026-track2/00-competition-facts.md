@@ -44,7 +44,7 @@ Submission limits: 5 per day, 100 per phase, best score retained. Phase 1 and Ph
 Per episode (`HASimulator/metric.py`): `collisions` = number of steps where Habitat's `previous_step_collided` is true
 (walls **and** humans — humans are inserted as static objects and the navmesh is recomputed around them);
 `TCR_ep = max(0, collisions − collision_num[ep])` (released per-episode baseline), `CR_ep = min(TCR_ep, 1)`,
-`SR_ep = (final distance ≤ 3 m) × (TCR_ep == 0)`.
+`SR_ep = (STOP issued ∧ final distance < 3 m, strict) × (TCR_ep == 0)`.
 Aggregates: SR, NE (mean final distance), TCR = means over all episodes; CR is described as normalised by the human-influenced
 episode count (682 / 1,593 / 2,859 for val_seen / val_unseen / test; the non-influenced counts are 96 / 246 / 549), while the
 released trainer averages over all episodes. Irrelevant for a zero-collision tape; confirm in the image's scorer on day 1.

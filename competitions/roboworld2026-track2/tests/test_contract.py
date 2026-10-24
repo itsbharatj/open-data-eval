@@ -22,6 +22,33 @@ class ContractTests(unittest.TestCase):
             with self.assertRaises(ContractError):
                 check_rows(rows, expected)
 
+    def test_strict_types(self):
+        with self.assertRaises(ContractError):
+            check_rows([{"episode_id": 1, "actions": ["STOP"]}], ["1"])
+        with self.assertRaises(ContractError):
+            check_rows([{"episode_id": "1", "actions": "STOP"}], ["1"])
+        check_rows([{"episode_id": "1", "actions": ["TURN_LEFT"] * 500}], ["1"])  # 500 without STOP is legal
+
+    def test_zip_is_byte_reproducible(self):
+        import hashlib
+        hashes = set()
+        for _ in range(2):
+            with tempfile.TemporaryDirectory() as d:
+                zp = write_submission(Path(d), {"val_seen": {"1": ["STOP"]}}, {"val_seen": ["1"]})
+                hashes.add(hashlib.sha256(zp.read_bytes()).hexdigest())
+        self.assertEqual(len(hashes), 1)
+
+    def test_symlink_member_rejected(self):
+        import stat
+        with tempfile.TemporaryDirectory() as d:
+            zp = Path(d) / "sym.zip"
+            with zipfile.ZipFile(zp, "w") as zf:
+                info = zipfile.ZipInfo("val_seen.json")
+                info.external_attr = (stat.S_IFLNK | 0o777) << 16
+                zf.writestr(info, "/etc/passwd")
+            with self.assertRaises(ContractError):
+                validate_submission_zip(zp, {"val_seen": ["1"]})
+
     def test_roundtrip_write_and_validate(self):
         with tempfile.TemporaryDirectory() as d:
             preds = {"val_seen": {"1": ["MOVE_FORWARD", "STOP"], "2": ["STOP"]},

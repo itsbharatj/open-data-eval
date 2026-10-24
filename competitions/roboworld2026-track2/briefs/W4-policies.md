@@ -2,7 +2,7 @@
 
 Goal: the strongest egocentric policy that fits the rules, fine-tuned on HA-R2R train with collision-free experts.
 
-Candidates (see `research/B2-vlnce-sota-2023-2026.md`): SimpleVLN Qwen3.5-9B RL (R2R-CE val unseen SR 76.7, weights public,
+Order of work (`research/C9-*`): **SimpleVLN first** (fits the rules as published: one forward RGB camera, HFOV 90, exact 0.25 m / 15° action chunks; ~300-line vLLM client), **ETP-R1 second** (22-TURN in-place rings replace its 12 cameras; budget-aware sweep/STOP rule; replace the GRPO reward with success ∧ zero collisions). NavGPT-3, OmniNav, Uni-NaVid are NOT compliant as published (multi-camera rigs / teleport). Candidates (see `research/B2-vlnce-sota-2023-2026.md`): SimpleVLN Qwen3.5-9B RL (R2R-CE val unseen SR 76.7, weights public,
 served by vLLM, Habitat 0.3.3 eval → build a side-environment or bridge to the 0.1.7 HA scenes with humans inserted);
 ETP-R1 (65.3; Habitat 0.1.7-native; needs 12 views → replace cameras with in-place rotation sweeps at decision points and set
 `back_algo: control`, no teleport); StreamVLN (56.9; Habitat 0.2.4); NaVILA (54.0). Monocular VLAs are budget-friendly (no sweeps).
@@ -13,6 +13,8 @@ Rules: one forward RGB-D camera; panoramas only by TURN actions that go into the
 Training data (allowed): privileged expert = shortest path to the GT goal on a navmesh inflated to radius 0.30 with all 120 human
 frames inserted (W1 planning service), converted to actions with the W2 executor logic; DAgger with the student in the loop;
 reward for RL = success ∧ zero contacts (GPS-detected). 10,819 train episodes; also ScaleVLN/VLN-CE conversions as extra data.
+
+Guard v2 (`research/C9-*`, `C7-*`): depth+GPS occupancy map, a learned step-collision predictor trained on navmesh labels from TRAIN scans, a person keep-out zone, A* escape on veto — the navmesh-oracle guard is privileged and stays in `oracle/`.
 
 Integration: policies consume `program.json` (W3) and the executor (W2) is the only thing that emits MOVE_FORWARD. Policies propose
 waypoints/sub-goals and STOP; the executor guarantees safety.
