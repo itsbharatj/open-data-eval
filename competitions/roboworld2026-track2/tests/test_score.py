@@ -51,6 +51,11 @@ class ScoreFormulaTests(unittest.TestCase):
         m_hi = aggregate(rows, base, split="val_unseen", cr_mode="human_influenced")
         self.assertAlmostEqual(m_all.CR, 0.10)
         self.assertAlmostEqual(m_hi.CR, 10 / HUMAN_INFLUENCED["val_unseen"])
+        self.assertEqual(HUMAN_INFLUENCED["val_seen"], 682)
+        self.assertEqual(HUMAN_INFLUENCED["test"], 2859)
+        # beta from HASimulator/metric.py reproduces the organizer table
+        for split, n, non_influenced in (("val_seen", 778, 96), ("val_unseen", 1839, 246), ("test", 3408, 549)):
+            self.assertEqual(HUMAN_INFLUENCED[split], n - non_influenced)
         self.assertAlmostEqual(m_all.SR, 0.90)
         self.assertAlmostEqual(m_all.TCR, 0.10)
 

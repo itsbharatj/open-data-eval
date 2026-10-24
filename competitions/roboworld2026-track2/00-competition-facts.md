@@ -45,8 +45,9 @@ Per episode (`HASimulator/metric.py`): `collisions` = number of steps where Habi
 (walls **and** humans — humans are inserted as static objects and the navmesh is recomputed around them);
 `TCR_ep = max(0, collisions − collision_num[ep])` (released per-episode baseline), `CR_ep = min(TCR_ep, 1)`,
 `SR_ep = (final distance ≤ 3 m) × (TCR_ep == 0)`.
-Aggregates: SR, NE (mean final distance), TCR = means over all episodes; CR normalised by the human-influenced
-episode count (96 / 246 / 549 for val_seen / val_unseen / test).
+Aggregates: SR, NE (mean final distance), TCR = means over all episodes; CR is described as normalised by the human-influenced
+episode count (682 / 1,593 / 2,859 for val_seen / val_unseen / test; the non-influenced counts are 96 / 246 / 549), while the
+released trainer averages over all episodes. Irrelevant for a zero-collision tape; confirm in the image's scorer on day 1.
 
 ```
 Navigation = 0.80·SR + 0.20·3/(3+NE)

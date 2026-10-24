@@ -13,12 +13,14 @@ where collisions_count = number of simulator steps whose `previous_step_collided
 flag was True (walls AND humans; humans are static navmesh obstacles) and
 collision_num is the organizer-released per-episode baseline count.
 
-Aggregates (README): SR, NE, TCR are means over ALL episodes. CR is the
-"collision-episode rate over human-influenced episodes". metric.py exposes
-    beta = 1 - (#human-influenced / #episodes)
-so the all-episode mean of CR_ep divided by (1 - beta) is the natural reading.
-Both variants are exposed; `aggregate(..., cr_mode=...)` selects one. The
-default mirrors the README wording ("over human-influenced episodes").
+Aggregates (README): SR, NE, TCR are means over ALL episodes. CR is described as the
+"collision-episode rate over human-influenced episodes" (682 / 1,593 / 2,859 episodes
+for val_seen / val_unseen / test), while the released trainer code simply averages
+CR_ep over all episodes. The published CMA row (CR .623) is consistent with the
+all-episode mean and would exceed 0.7 under the human-influenced denominator, so the
+default here is `cr_mode="all"`; `cr_mode="human_influenced"` is provided for the
+README reading. Confirm against the scorer package inside the official image
+(/opt/havln-challenge/scoring) on day 1. For a zero-collision tape both give CR = 0.
 
 Composite (README, full precision, higher is better):
     Navigation = 0.80*SR + 0.20*3/(3+NE)
@@ -41,12 +43,13 @@ SPLIT_SIZES: Dict[str, int] = {
     "test": 3408,
 }
 
-#: Human-influenced episode counts implied by HASimulator/metric.py `beta`.
+#: Human-influenced episode counts (organizer README table, havln-challenge@8e36fa7 L87-91; also = beta * split size
+#: with beta from HASimulator/metric.py: 1-1615/10819, 1-96/778, 1-246/1839, 1-549/3408).
 HUMAN_INFLUENCED: Dict[str, int] = {
-    "train": 1615,
-    "val_seen": 96,
-    "val_unseen": 246,
-    "test": 549,
+    "train": 9204,
+    "val_seen": 682,
+    "val_unseen": 1593,
+    "test": 2859,
 }
 
 
@@ -112,13 +115,13 @@ def aggregate(
     results: Iterable[EpisodeResult],
     baseline_collisions: Mapping[str, int],
     split: str = "val_unseen",
-    cr_mode: str = "human_influenced",
+    cr_mode: str = "all",
 ) -> SplitMetrics:
     """Aggregate per-episode replay outcomes into official-style split metrics.
 
     cr_mode:
-      "human_influenced" -> CR = sum(CR_ep) / HUMAN_INFLUENCED[split]   (README wording)
-      "all"              -> CR = mean(CR_ep) over all episodes          (metric.py + trainer mean)
+      "all"              -> CR = mean(CR_ep) over all episodes          (trainer aggregation; default)
+      "human_influenced" -> CR = sum(CR_ep) / HUMAN_INFLUENCED[split]   (README wording; may exceed 1)
     """
     rows = list(results)
     n = len(rows)
@@ -138,7 +141,7 @@ def aggregate(
         denom = HUMAN_INFLUENCED.get(split)
         if denom is None:
             raise ValueError(f"unknown split {split!r} for human-influenced normalisation")
-        cr = min(1.0, cr_sum / denom)
+        cr = cr_sum / denom  # not clipped: the README reading can exceed 1 if non-influenced episodes collide
     elif cr_mode == "all":
         cr = cr_sum / n
     else:
