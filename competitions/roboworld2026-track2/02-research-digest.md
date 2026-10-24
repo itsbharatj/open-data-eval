@@ -17,6 +17,10 @@ Asset: `data/test_episode_index.json`.
 re-snaps an off-navmesh agent for free. Agent 0.1 m radius / 1.5 m; navmesh eroded 0.10 m; humans are static objects baked into
 per-frame navmeshes (0.2–1.6 m body band). 4–6 % of starts lie within 0.5 m of a human. Guarantee zero collisions by planning on
 an inflated (0.25–0.30 m) swept-volume mesh and verifying kinematically against all 121 navmeshes; begin with a TURN at crowded starts.
+v2 additions: step 1 always injects humans (the 120-slot queue caps the counter, so a slow reset never skips them); `collision_num`
+leaks the goal — when non-zero, 98 % of train/val_unseen episodes have a human within 3 m of the goal (a prior for the 237 test
+episodes, privileged under the Oct-14 rules); human positions in the data are body-box centres ~0.84 m above the floor; open risks:
+the image's "patched Habitat core" is unknown and the organizers' navmesh cache is keyed only by scan and frame.
 
 **A3 Human timing.** Frame at step k = thread ticks since reset − 1 (0.1 s ticks, only while the GIL is free; capped at 120 by the
 queue; never loops; freezes at the last applied frame). Under fast official replay (~5 ms/step) humans stay at frames ≤ ~10–20
