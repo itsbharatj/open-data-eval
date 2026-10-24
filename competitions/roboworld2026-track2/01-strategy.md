@@ -77,6 +77,14 @@ analysis for Track A, (ii) the expert for DAgger data, (iii) the regression harn
 
 **Gate G-rules (by Oct 28):** written organizer answer. Default if silent: Track A only.
 
+Why the default is Track A even without an answer (from `research/B8-*`): the clarification is open **PR #2** on the official
+toolkit, authored by organizer Bohan Xiong on Oct 14; the lead organizer's previous social-navigation track (RoboSense 2025)
+banned global maps and privileged information, required code for final submissions, audited code before awards, and
+disqualified teams that accessed extra environment information. A privileged tape set would also be statistically conspicuous
+(Score 75–95 against a field at 20–50) and visible in the action sequences themselves. The innovation award in that track went
+to a *named module* (collision-risk prediction with nearby humans) on the 2nd-place team, so a clearly named safety/foresight
+module matters more than raw rank for the Best Innovative Solution certificate.
+
 ---
 
 ## 3. Track A architecture (what the agents build)
@@ -205,3 +213,27 @@ Each brief in `briefs/` is self-contained: goal, inputs, pointers into `research
 done, and what to report. Every agent must: (1) read `00-competition-facts.md`; (2) never import privileged data in inference
 code paths (`oracle/` package only); (3) validate every ZIP with `havln_tools`; (4) log experiments in `RESULTS.md` with the
 config fingerprint; (5) treat val_unseen as the only test proxy and never touch test instructions for prompt tuning.
+
+---
+
+## 10. Competitive landscape (from `research/A7-competitor-intelligence.md`, 2026-10-24)
+
+Only one public Track-2 competitor exists (bingchengzhang/HA-VLN, ZJU, created Oct 21: YOLOv8-seg people, per-floor 2.5-D map,
+grid-search candidate routes, Qwen2.5-VL-7B QLoRA chooser; reported SR 0 on 20 val_unseen episodes; already follows the Oct-14
+rules). Published HA-VLN-CE state of the art: HCSG (May 2026) SR .24 / CR .36 / TCR 5.0 ≈ Score 23; BEVBert ≈ 19; ETPNav ≈ 17;
+CMA baseline 12.95. Public ports of StreamVLN and InternNav/DualVLN to HA-VLN exist, so fine-tuned-VLA teams are plausible.
+Camera tilt for LOOK actions is 30° in the challenge config; a maintainer confirmed in UWMILab issue #17 that wall sliding counts.
+
+| Approach a rival might field | Estimated Score |
+|---|---|
+| CMA baseline / ported ETPNav-type agent | 13 / 18 |
+| HCSG-class social agent | 23 |
+| Graph agent + collision guard | 32 |
+| Fine-tuned VLA + guard | 40 |
+| Frontier-API agent + guard (allowed by FAQ Q12) | 47 |
+| Multi-rollout test-time selection | 52 |
+| Privileged offline planner (needs explicit permission) | 66–90 |
+
+Rough simulation: best rival's median Score ≈ 30, P(best rival ≥ 50) ≈ 0.16. **A compliant entry at Score ≥ 52 (SR ≥ .55, CR ≤ .1)
+wins about 85 % of the time; each +0.01 SR adds ≈ 0.74 Score.** Competitor failure modes to design out: getting stuck inside
+inflation zones, STOP rejected because depth hit a background wall, instruction truncation at 256 tokens, 24-turn spins eating the budget.
