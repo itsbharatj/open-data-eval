@@ -1,6 +1,6 @@
 # W5 — Test-time compute: rollouts, self-consistency, verifier
 
-Goal: convert unlimited compute into SR without touching GT.
+Goal: convert unlimited compute into SR without touching GT. **Compliance status (`research/C3-*`): multi-rollout selection and cross-episode memory are GRAY — build them behind feature flags, default OFF, enable only with a written organizer answer. Per-step compute (sampling several outputs at the same state, world-model lookahead inside the agent) is clearly allowed and is the default lever.**
 
 For each trajectory (3 sibling episodes share the start pose — group with `havln_tools.group_by_path`): run K rollouts (K = 8–32)
 varying seed, policy (W4 variants), prompt phrasing, and sweep schedule. For each rollout record the tape, stop position, GPS-detected

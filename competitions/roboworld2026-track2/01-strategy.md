@@ -42,7 +42,7 @@ Companion files: `00-competition-facts.md` (verified facts), `research/` (agent 
      Using the sibling instructions jointly is a test-*input* trick, not a GT leak; we will ask the organizers and run it only
      if allowed (expected gain: several SR points).
 
-5. **Expected outcome.** Published HA-VLN-CE state of the art is SR 0.17–0.24 (BEVBert/ETPNav retrained, HCSG May 2026); the
+5. **Expected outcome.** (Clean configuration ≈ Score 40–50; with the gray levers approved ≈ 50–65.) Published HA-VLN-CE state of the art is SR 0.17–0.24 (BEVBert/ETPNav retrained, HCSG May 2026); the
    baseline is 0.129 / Score 12.9. A compliant agent built as below targets **SR 0.50–0.65, NE 2–3 m, CR≈TCR≈0 → Score 50–65**,
    which would be first by a wide margin unless another team fields an offline privileged planner (Score 75–90). That risk is
    covered by (a) getting the clarification merged/confirmed publicly (we ask, in writing, today), and (b) keeping a privileged
@@ -80,7 +80,24 @@ analysis for Track A, (ii) the expert for DAgger data, (iii) the regression harn
 test ground truth. We do not use it, every pipeline blocks it by hash, and we recommend informing the organizers privately before
 Oct 30 so the leaderboard stays meaningful (and so no rival gains 25 % of the test set for free).
 
-**Gate G-rules (by Oct 28):** written organizer answer. Default if silent: Track A only.
+**Compliance tiers (`research/C3*`, principle "information locality": an episode's actions may depend only on its own inputs,
+on observations bought by actions in its own submitted sequence, and on what was learned beforehand).**
+*Clearly allowed:* the closed-loop RGB-D+GPS agent; unlimited compute per step (incl. sampling several model outputs at the same
+state, world models); bump detection from a short GPS displacement within a run; privileged teacher data on the 61 train scans
+(exclude the 11 val_unseen scans, whose humans are public); external models/data; closed-source APIs; val for aggregate model
+selection; local replay of test tapes for format/determinism only.
+*Gray — ask first, off by default:* several local rollouts per episode with self-consistency selection (≈ +9–15 Score); memory across
+episodes of the same building / pre-exploration (≈ +8–14); sibling-instruction sharing (≈ +5); changing camera resolution/FOV/height;
+training on renderings of test buildings.
+*Prohibited:* human placements or simulator human state at inference; look-ahead or virtual cameras; nav-graph/mesh/navmesh/MP3D
+annotations of test buildings at inference; the public original R2R test instructions (to confirm); picking or editing individual test
+tapes using GT or local replay; leaderboard probing or multiple accounts; public test-side annotations (`collision_num_test.json`,
+HA-VLN-1.0 test humans); any human in the loop on test episodes.
+=> The **clean configuration** = single-rollout compliant agent with the safety executor and per-step compute. The gray levers are
+engineered behind feature flags and switched on only with a written organizer answer; **if no answer by Nov 7, freeze the clean
+configuration.** Ready-to-post question text: `03-organizer-questions.md`.
+
+**Gate G-rules (by Oct 28):** written organizer answer. Default if silent: Track A, clean configuration.
 
 Why the default is Track A even without an answer (from `research/B8-*`): the clarification is open **PR #2** on the official
 toolkit, authored by organizer Bohan Xiong on Oct 14; the lead organizer's previous social-navigation track (RoboSense 2025)
