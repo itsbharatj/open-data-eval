@@ -278,6 +278,10 @@ Phase 1a covers Layer 5 fully and Layers 1–3 partially from metadata. Layers 2
 
 ---
 
+## Competitions
+
+`competitions/roboworld2026-track2/` — strategy package, scoring tools and research for RoboWorld 2026 Track 2 (HA-VLN 2.0).
+
 ## Contributing
 
 Open an issue or PR. The catalog and quality profiles are the most useful place to contribute — adding missing fields, correcting errors, or extending coverage to new datasets.
