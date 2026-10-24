@@ -150,7 +150,15 @@ best single 67.5 %) — only a learned selector captures the 87–97 % union. Co
 node +2–4, per-step ensembles +1–3, rewritten own-instruction runs +1–3, uncertainty-gated look-ahead +1–4 → ≈ +8–18 SR total,
 putting the test at ~0.50–0.62 SR. Val_unseen SR standard error ≈ 1.6 pp.
 
-**B9 Instruction linguistics** — *pending*.
+**B9 Instruction linguistics.** Each HA-R2R instruction is an LLM expansion of one R2R instruction (~26 → ~112 words) that mentions
+~56 % of the humans visible from the path; route content gets corrupted (left/right sequences survive in 84–87 % of 1.0 rewrites;
+2.0 examples invent scenery and room transitions) → expect ≥ 10–15 % of test instructions with a corrupted route element. Matching
+mentions to annotated humans is easy (word overlap 85–95 %; an LLM should exceed 95 %). But human anchors locate the goal only
+roughly: the human nearest the goal is within 3 m on ~41 % of paths (median 3.1–3.4 m); the final sentence names a human in only
+36–45 % of cases — use human cues as soft scores, never hard filters (a hard "near the final-stage human" filter discards the true
+goal 27–32 % of the time). The parser must label each clause (route vs human) before reading the route: naive last-room-word goal
+region is right 48.9 % on R2R text but 33.9 % on HA rewrites (42.9 % after dropping human clauses). Includes the 30-code MP3D region
+table with synonyms, the parse schema, prompts P1–P4 and a 7-metric validation plan.
 
 ## Strategy & ops
 

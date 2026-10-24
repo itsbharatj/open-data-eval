@@ -19,6 +19,11 @@ build the mention→activity matcher as a 144-way classifier (word overlap + emb
 body meshes without props, so detect presence, room type and position along the route, and treat the visual activity guess as a
 tiebreaker; train the person detector/segmenter on exact labels rendered with `set_object_semantic_id` on train scans.
 
+Linguistics facts (`research/B9-*`): label every clause as route vs human-description before extracting the route (human sentences name
+rooms that are not on the route); treat human cues as soft evidence (the human nearest the goal is within 3 m on only ~41 % of paths;
+the last sentence names a human in only 36–45 %); expect ≥ 10–15 % of instructions with a corrupted route element (LLM rewrite
+artefacts), so the program must tolerate a wrong turn word. Use the 30-code MP3D region table with synonyms and prompts P1–P4 from B9.
+
 Evaluation (val_unseen, GT in `oracle/`): (a) parser accuracy on end-region and mention extraction (LLM-judged against GT path
 region sequence from the MP3D .house file); (b) human-mention → detected-person matching precision/recall; (c) does the end
 mention lie within 3 m of the GT goal (how often)? Target ≥ 0.8 for (b) and report (c).
