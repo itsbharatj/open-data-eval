@@ -1,0 +1,394 @@
+{
+  "$defs": {
+    "action": {
+      "enum": [
+        "STOP",
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
+        "LOOK_UP",
+        "LOOK_DOWN"
+      ]
+    },
+    "episode_id": {
+      "pattern": "^[0-9]+$",
+      "type": "string"
+    },
+    "eval_set": {
+      "description": "names = keys of data/val_unseen_splits.json (smoke 60, quick 306, dev 1,413, lockbox 426) + C10 fixtures (g60, ha-mini)",
+      "pattern": "^(smoke|quick|dev|lockbox|val_unseen|val_seen|trainho|g60|ha-mini|test|syn-[a-z0-9-]+)(@v[0-9]+)?$",
+      "type": "string"
+    },
+    "input_kind": {
+      "enum": [
+        "rgb",
+        "depth",
+        "pose",
+        "instruction",
+        "episode_id",
+        "start_pose",
+        "siblings",
+        "navmesh",
+        "humans_gt",
+        "goal_gt",
+        "scene_mesh",
+        "test_scan_assets",
+        "collision_flag"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "compliant",
+        "privileged"
+      ]
+    },
+    "prob": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "quat_xyzw": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "regime": {
+      "description": "C1 R0 wall=official wall-clock; R1 wallx:<s/step> throttled; R2 frz:<k> frozen at frame k; R3 sps:<S> deterministic schedule at S steps/s (C6 virtual clock dhat=5 ms == sps:200); R4 allf = all-frames kinematic certificate; C6 extras: lock (step-locked), stall:<k>, rand:<seed> (random monotone schedule); static = no humans",
+      "pattern": "^(wall|wallx:[0-9.]+|frz:([0-9]|[1-9][0-9]|1[01][0-9])|sps:[0-9]+|allf|lock|stall:([0-9]|[1-9][0-9]|1[01][0-9])|rand:[0-9]+|static)$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val_seen",
+        "val_unseen",
+        "test",
+        "synthetic"
+      ]
+    },
+    "task_id": {
+      "pattern": "^(W[0-8]|INT|REV|OPS)-T[0-9]{2,3}$",
+      "type": "string"
+    },
+    "utc": {
+      "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?Z$",
+      "type": "string"
+    },
+    "vec3": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    }
+  },
+  "$id": "havln-team/contracts/LedgerResult/1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "agent_fp": {
+      "$ref": "#/$defs/sha256"
+    },
+    "benchmark": {
+      "description": "C10 benchmark id (B0..B8) or ad-hoc experiment tag",
+      "type": "string"
+    },
+    "compliance": {
+      "properties": {
+        "audit_sha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flags": {
+          "additionalProperties": {
+            "type": "boolean"
+          },
+          "type": "object"
+        },
+        "inputs_used": {
+          "items": {
+            "$ref": "#/$defs/input_kind"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs_used"
+      ],
+      "type": "object"
+    },
+    "config_hash": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "contract": {
+      "const": "LedgerResult/1"
+    },
+    "created_at": {
+      "$ref": "#/$defs/utc"
+    },
+    "data_fingerprint": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "dirty": {
+      "type": "boolean"
+    },
+    "expected_band": {
+      "type": "object"
+    },
+    "fingerprint": {
+      "$ref": "#/$defs/sha256"
+    },
+    "git_sha": {
+      "pattern": "^[0-9a-f]{7,40}$",
+      "type": "string"
+    },
+    "hypothesis": {
+      "description": "pre-registered before the run: what should change and by how much",
+      "minLength": 10,
+      "type": "string"
+    },
+    "image_digest": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "k_rollouts": {
+      "minimum": 1,
+      "type": "integer"
+    },
+    "metrics": {
+      "anyOf": [
+        {
+          "properties": {
+            "CR": {
+              "type": "number"
+            },
+            "NE": {
+              "type": "number"
+            },
+            "SR": {
+              "type": "number"
+            },
+            "SR_ci95": {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 2,
+              "minItems": 2,
+              "type": "array"
+            },
+            "Score": {
+              "type": "number"
+            },
+            "TCR": {
+              "type": "number"
+            },
+            "contact_free_rate": {
+              "type": "number"
+            },
+            "cr_mode": {
+              "enum": [
+                "human_influenced",
+                "human_influenced_scaled",
+                "all"
+              ]
+            },
+            "paired_delta_SR": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paired_p": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "paired_vs": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "SR",
+            "NE",
+            "CR",
+            "TCR",
+            "Score"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "mode": {
+      "enum": [
+        "compliant",
+        "privileged",
+        "oracle_goal"
+      ]
+    },
+    "notes": {
+      "maxLength": 2000,
+      "type": "string"
+    },
+    "owner": {
+      "description": "WS/session, e.g. W2/session_abc",
+      "type": "string"
+    },
+    "parents": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "pass": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "per_episode": {
+      "anyOf": [
+        {
+          "properties": {
+            "path": {
+              "type": "string"
+            },
+            "sha256": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "replay_regime": {
+      "$ref": "#/$defs/regime"
+    },
+    "rollout_regime": {
+      "$ref": "#/$defs/regime"
+    },
+    "run_id": {
+      "description": "ULID (time-sortable)",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$",
+      "type": "string"
+    },
+    "runtime": {
+      "properties": {
+        "episodes_per_h": {
+          "type": "number"
+        },
+        "gpu_s": {
+          "type": "number"
+        },
+        "llm_usd": {
+          "type": "number"
+        },
+        "steps_per_s": {
+          "type": "number"
+        },
+        "wall_s": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "split": {
+      "$ref": "#/$defs/split"
+    },
+    "subset": {
+      "properties": {
+        "ids_sha": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "n": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "name": {
+          "$ref": "#/$defs/eval_set"
+        }
+      },
+      "required": [
+        "name",
+        "n",
+        "ids_sha"
+      ],
+      "type": "object"
+    },
+    "task_id": {
+      "$ref": "#/$defs/task_id"
+    }
+  },
+  "required": [
+    "contract",
+    "run_id",
+    "created_at",
+    "owner",
+    "task_id",
+    "hypothesis",
+    "benchmark",
+    "git_sha",
+    "dirty",
+    "config_hash",
+    "image_digest",
+    "data_fingerprint",
+    "mode",
+    "split",
+    "subset",
+    "rollout_regime",
+    "replay_regime",
+    "agent_fp",
+    "fingerprint",
+    "compliance"
+  ],
+  "title": "LedgerResult/1: one record per (run, subset, regime) = C10 ledger_result.schema.json field names PLUS the C5 additions task_id, hypothesis (pre-registered), agent_fp, fingerprint, k_rollouts, compliance. Written only by havln_tools.ledger.append() as ONE FILE PER RECORD (ledger/results/<run_id>.json) to avoid append conflicts; results.jsonl and RESULTS.md are generated. Rule: no run_id, no claim.",
+  "type": "object"
+}

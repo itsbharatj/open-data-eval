@@ -1,0 +1,42 @@
+{
+  "actions_used": 1,
+  "camera": {
+    "height_m": 1.25,
+    "hfov_deg": 90,
+    "pitch_deg": 0,
+    "tilt_step_deg": 30
+  },
+  "contract": "Observation/1",
+  "depth": {
+    "max_range_m": 10.0,
+    "min_range_m": 0.0,
+    "ref": "shm://ep17/t1/depth",
+    "shape": [
+      256,
+      256,
+      1
+    ],
+    "units": "m"
+  },
+  "episode_id": "17",
+  "last_action": "MOVE_FORWARD",
+  "pose": {
+    "position_ep": [
+      0.25,
+      0.0,
+      0.0
+    ],
+    "source": "gps_compass",
+    "yaw_ep": 0.0
+  },
+  "pose_delta_m": 0.25,
+  "rgb": {
+    "ref": "shm://ep17/t1/rgb",
+    "shape": [
+      224,
+      224,
+      3
+    ]
+  },
+  "t": 1
+}

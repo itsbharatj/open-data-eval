@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "action": {
+      "enum": [
+        "STOP",
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
+        "LOOK_UP",
+        "LOOK_DOWN"
+      ]
+    },
+    "episode_id": {
+      "pattern": "^[0-9]+$",
+      "type": "string"
+    },
+    "eval_set": {
+      "description": "names = keys of data/val_unseen_splits.json (smoke 60, quick 306, dev 1,413, lockbox 426) + C10 fixtures (g60, ha-mini)",
+      "pattern": "^(smoke|quick|dev|lockbox|val_unseen|val_seen|trainho|g60|ha-mini|test|syn-[a-z0-9-]+)(@v[0-9]+)?$",
+      "type": "string"
+    },
+    "input_kind": {
+      "enum": [
+        "rgb",
+        "depth",
+        "pose",
+        "instruction",
+        "episode_id",
+        "start_pose",
+        "siblings",
+        "navmesh",
+        "humans_gt",
+        "goal_gt",
+        "scene_mesh",
+        "test_scan_assets",
+        "collision_flag"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "compliant",
+        "privileged"
+      ]
+    },
+    "prob": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "quat_xyzw": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "regime": {
+      "description": "C1 R0 wall=official wall-clock; R1 wallx:<s/step> throttled; R2 frz:<k> frozen at frame k; R3 sps:<S> deterministic schedule at S steps/s (C6 virtual clock dhat=5 ms == sps:200); R4 allf = all-frames kinematic certificate; C6 extras: lock (step-locked), stall:<k>, rand:<seed> (random monotone schedule); static = no humans",
+      "pattern": "^(wall|wallx:[0-9.]+|frz:([0-9]|[1-9][0-9]|1[01][0-9])|sps:[0-9]+|allf|lock|stall:([0-9]|[1-9][0-9]|1[01][0-9])|rand:[0-9]+|static)$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val_seen",
+        "val_unseen",
+        "test",
+        "synthetic"
+      ]
+    },
+    "task_id": {
+      "pattern": "^(W[0-8]|INT|REV|OPS)-T[0-9]{2,3}$",
+      "type": "string"
+    },
+    "utc": {
+      "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?Z$",
+      "type": "string"
+    },
+    "vec3": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    }
+  },
+  "$id": "havln-team/contracts/RolloutRecord/1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/action"
+      },
+      "maxItems": 500,
+      "minItems": 1,
+      "type": "array"
+    },
+    "agent_fp": {
+      "$ref": "#/$defs/sha256"
+    },
+    "audit_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "contacts_detected": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "contract": {
+      "const": "RolloutRecord/1"
+    },
+    "created_utc": {
+      "$ref": "#/$defs/utc"
+    },
+    "episode_id": {
+      "$ref": "#/$defs/episode_id"
+    },
+    "final_pose_ep": {
+      "properties": {
+        "position_ep": {
+          "$ref": "#/$defs/vec3"
+        },
+        "yaw_ep": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "inputs_used": {
+      "items": {
+        "$ref": "#/$defs/input_kind"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "mode": {
+      "$ref": "#/$defs/mode"
+    },
+    "model_calls": {
+      "properties": {
+        "cache_hits": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "n": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "usd": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "regime_during_rollout": {
+      "$ref": "#/$defs/regime"
+    },
+    "rollout_id": {
+      "type": "string"
+    },
+    "seed": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "self_confidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/prob"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "split": {
+      "$ref": "#/$defs/split"
+    },
+    "stop_belief": {
+      "anyOf": [
+        {
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "stopped": {
+      "type": "boolean"
+    },
+    "wall_s": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "contract",
+    "episode_id",
+    "split",
+    "rollout_id",
+    "agent_fp",
+    "seed",
+    "mode",
+    "actions",
+    "stopped",
+    "contacts_detected",
+    "inputs_used",
+    "audit_sha256",
+    "created_utc"
+  ],
+  "title": "RolloutRecord/1: one executed episode = one candidate tape. Producer: W1 runner (signs inputs_used/audit). Consumers: W5 selector, W6 release, scorer. Contains NO ground-truth metrics (those live in ScoreResult/1).",
+  "type": "object"
+}

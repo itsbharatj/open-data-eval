@@ -1,16 +1,27 @@
-# W5 — Test-time compute: rollouts, self-consistency, verifier
+# W5 — Test-time compute and selection
 
-Goal: convert unlimited compute into SR without touching GT. **Compliance status (`research/C3-*`): multi-rollout selection and cross-episode memory are GRAY — build them behind feature flags, default OFF, enable only with a written organizer answer. Per-step compute (sampling several outputs at the same state, world-model lookahead inside the agent) is clearly allowed and is the default lever.**
+## W5-S (default; ships in the clean configuration)
+Goal: turn per-step compute into SR inside ONE closed-loop run. Levers (`research/B10` P4–P7, `B5` §7.8, `C8` §7.1):
+1. Stop verifier + return-to-best-visited-node. A Qwen3-VL-8B judge P(goal within 3 m | instruction, own keyframes, policy stop
+   logit), trained on rollouts of OUR policies on TRAIN scans in 4 scan-disjoint folds. At each STOP proposal compare the current
+   node with the visited nodes; if a visited node wins by margin τ, W2 drives back and stops there.
+2. Per-step ensemble. Average action/waypoint logits of 3–5 snapshots/seeds of the same architecture; heterogeneous policies vote on
+   the next sub-goal position (cluster medoid); the verifier breaks ties. No extra environment steps.
+3. Instruction TTA on the episode's own text: raw HA text + condensed route-only paraphrase + ordered sub-instruction list; fuse per step.
+4. Uncertainty-gated look-ahead. If the verifier's top-2 margin < τ2 and ≥ 100 actions remain, physically visit the runner-up endpoint
+   (≤ 15 m extra travel; skip within 1 m of detected people), then return. All of these actions are in the tape.
 
-For each trajectory (3 sibling episodes share the start pose — group with `havln_tools.group_by_path`): run K rollouts (K = 8–32)
-varying seed, policy (W4 variants), prompt phrasing, and sweep schedule. For each rollout record the tape, stop position, GPS-detected
-contacts, and the agent's own confidence. Selection: discard tapes with any detected contact; cluster stop positions (3 m radius);
-pick the largest cluster's medoid tape; tie-break with a success verifier trained on train-split rollouts (features: observations,
-program progress, contact count) — never with GT.
+Consumes: `Observation/1`, `InstructionProgram/1`, `SubgoalProposal/1` (from each W4 policy). Produces: one fused `SubgoalProposal/1`
+(+ stop_belief) for W2, and a `SelectionRecord/1` log.
+Never: discarded rollouts; contact information from other runs; sibling instructions; original R2R text; trajectory_id; simulator save/restore.
+DoD: paired DEV SR ≥ +3 pp over the best single backbone (trajectory-cluster bootstrap, p < 0.05); verifier ECE ≤ 0.05 on DEV with the
+manifest proving train-fold-only training; contact-episode rate not worse by > 0.2 pp; 100 % of tapes ≤ 500 actions with STOP.
+Tests: U18 (fusion maths) and U19 (stats) from `research/C10`; S14 rollout determinism with the LLM cache.
 
-If organizers allow sibling-instruction sharing: condition the rollouts on all three instructions (and the public R2R
-instruction when matched by start pose + text); otherwise run per episode and only share the executor's map.
+## W5-M (flag `rollouts_k`, default OFF; val ablation only until organizer issue item 4 is answered YES in writing)
+K = 8–32 rollouts per episode (seeds/policies/prompts). Selection features: stop-cluster support + verifier score over each run's own
+observations. Pose-detected contacts are logged but are NOT a feature unless item 4(d) is answered yes. Always report K=1 next to K>1.
 
-Evaluate on val_unseen: SR single-rollout vs K-rollout selection; calibration of the verifier; budget distribution.
-Target: +5 SR over single rollout; 0 contacts in selected tapes.
-Report: curves SR vs K; selection ablations; compute cost per episode.
+## Sibling fusion (flag `sibling_fusion`, default OFF; issue item 6)
+Joint conditioning on the 3 HA instructions only. Never the original R2R text (C3 T10). With the flag OFF nothing crosses episodes,
+not even the executor's map (that would be cross-episode memory, T07).

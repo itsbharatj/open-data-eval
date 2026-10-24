@@ -1,0 +1,77 @@
+{
+  "agent_fp": "5555555555555555555555555555555555555555555555555555555555555555",
+  "benchmark": "B3",
+  "compliance": {
+    "audit_sha256": null,
+    "flags": {
+      "multi_rollout": false
+    },
+    "inputs_used": [
+      "goal_gt",
+      "rgb",
+      "depth",
+      "pose"
+    ]
+  },
+  "config_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "contract": "LedgerResult/1",
+  "created_at": "2026-10-29T10:41:00Z",
+  "data_fingerprint": {
+    "episodes": "sha256:...",
+    "navmesh_manifest": "sha256:..."
+  },
+  "dirty": false,
+  "expected_band": {
+    "SR": [
+      0.9,
+      1.0
+    ]
+  },
+  "fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+  "git_sha": "abc1234",
+  "hypothesis": "0.30 m wall inflation removes door-frame contacts (-50 %) at <= 1 pp SR cost",
+  "image_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "k_rollouts": 1,
+  "metrics": {
+    "CR": 0.0,
+    "NE": 1.1,
+    "SR": 0.93,
+    "SR_ci95": [
+      0.915,
+      0.944
+    ],
+    "Score": 89.1,
+    "TCR": 0.0,
+    "contact_free_rate": 1.0,
+    "cr_mode": "human_influenced",
+    "paired_delta_SR": -0.004,
+    "paired_p": 0.41,
+    "paired_vs": "01JB1..."
+  },
+  "mode": "oracle_goal",
+  "notes": "L3 rung: compliant executor with GT goal point",
+  "owner": "W2/session_abc",
+  "parents": [],
+  "pass": true,
+  "per_episode": {
+    "path": "results/01JB2X7K9Q4M8V0R3T5W6Y1Z2A/dev.parquet",
+    "sha256": "..."
+  },
+  "replay_regime": "allf",
+  "rollout_regime": "sps:200",
+  "run_id": "01JB2X7K9Q4M8V0R3T5W6Y1Z2A",
+  "runtime": {
+    "episodes_per_h": 2070,
+    "gpu_s": 11500,
+    "llm_usd": 0,
+    "steps_per_s": 210,
+    "wall_s": 2460
+  },
+  "split": "val_unseen",
+  "subset": {
+    "ids_sha": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "n": 1413,
+    "name": "dev"
+  },
+  "task_id": "W2-T04"
+}

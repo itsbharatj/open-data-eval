@@ -1,0 +1,36 @@
+{
+  "aggregate": null,
+  "contract": "ScoreResult/1",
+  "eval_set": "dev",
+  "fingerprint": "1111111111111111111111111111111111111111111111111111111111111111",
+  "regime": "frz:0",
+  "rows": [
+    {
+      "CR": 0,
+      "SR": 0,
+      "TCR": 0,
+      "collision_steps": [],
+      "collisions": 0,
+      "distance_to_goal": 7.1,
+      "episode_id": "17",
+      "final_position": [
+        -1.2,
+        0.07,
+        3.15
+      ],
+      "frames_seen": [
+        0
+      ],
+      "steps_executed": 3,
+      "stopped": true,
+      "success": false
+    }
+  ],
+  "scan": "zsNo4HB9uLZ",
+  "split": "val_unseen",
+  "task_id": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "timing": {
+    "steps_per_s": 212.4,
+    "wall_s": 3.1
+  }
+}

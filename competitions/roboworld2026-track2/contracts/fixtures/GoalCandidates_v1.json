@@ -1,0 +1,42 @@
+{
+  "candidates": [
+    {
+      "cand_id": "vp_3f2a",
+      "euclid_m": 8.0,
+      "features": {
+        "human_end_match": true,
+        "room": "bedroom"
+      },
+      "floor_index": 0,
+      "geodesic_m": 9.1,
+      "goal_world": [
+        4.0,
+        0.07,
+        -6.2
+      ],
+      "rank": 1,
+      "score": 0.42,
+      "sources": [
+        "duet",
+        "vlm-judge"
+      ],
+      "viewpoint_id": "3f2a..."
+    }
+  ],
+  "contract": "GoalCandidates/1",
+  "episode_id": "17",
+  "fusion": {
+    "method": "rank-vote",
+    "version": "0.1"
+  },
+  "scan": "zsNo4HB9uLZ",
+  "stop_point": {
+    "p_within_3m": 0.61,
+    "position_world": [
+      4.0,
+      0.07,
+      -6.0
+    ]
+  },
+  "trajectory_key": "id3:6"
+}

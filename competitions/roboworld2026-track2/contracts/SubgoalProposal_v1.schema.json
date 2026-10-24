@@ -1,0 +1,383 @@
+{
+  "$defs": {
+    "action": {
+      "enum": [
+        "STOP",
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
+        "LOOK_UP",
+        "LOOK_DOWN"
+      ]
+    },
+    "episode_id": {
+      "pattern": "^[0-9]+$",
+      "type": "string"
+    },
+    "eval_set": {
+      "description": "names = keys of data/val_unseen_splits.json (smoke 60, quick 306, dev 1,413, lockbox 426) + C10 fixtures (g60, ha-mini)",
+      "pattern": "^(smoke|quick|dev|lockbox|val_unseen|val_seen|trainho|g60|ha-mini|test|syn-[a-z0-9-]+)(@v[0-9]+)?$",
+      "type": "string"
+    },
+    "input_kind": {
+      "enum": [
+        "rgb",
+        "depth",
+        "pose",
+        "instruction",
+        "episode_id",
+        "start_pose",
+        "siblings",
+        "navmesh",
+        "humans_gt",
+        "goal_gt",
+        "scene_mesh",
+        "test_scan_assets",
+        "collision_flag"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "compliant",
+        "privileged"
+      ]
+    },
+    "prob": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "quat_xyzw": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "regime": {
+      "description": "C1 R0 wall=official wall-clock; R1 wallx:<s/step> throttled; R2 frz:<k> frozen at frame k; R3 sps:<S> deterministic schedule at S steps/s (C6 virtual clock dhat=5 ms == sps:200); R4 allf = all-frames kinematic certificate; C6 extras: lock (step-locked), stall:<k>, rand:<seed> (random monotone schedule); static = no humans",
+      "pattern": "^(wall|wallx:[0-9.]+|frz:([0-9]|[1-9][0-9]|1[01][0-9])|sps:[0-9]+|allf|lock|stall:([0-9]|[1-9][0-9]|1[01][0-9])|rand:[0-9]+|static)$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val_seen",
+        "val_unseen",
+        "test",
+        "synthetic"
+      ]
+    },
+    "task_id": {
+      "pattern": "^(W[0-8]|INT|REV|OPS)-T[0-9]{2,3}$",
+      "type": "string"
+    },
+    "utc": {
+      "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?Z$",
+      "type": "string"
+    },
+    "vec3": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    }
+  },
+  "$id": "havln-team/contracts/SubgoalProposal/1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "waypoint",
+              "stop_at"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "target_ep": {
+            "$ref": "#/$defs/vec3"
+          }
+        },
+        "required": [
+          "target_ep"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "heading"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "heading_ep": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "heading_ep"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "look_around"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "sweep"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "stop_here",
+              "stop_at"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "stop_belief"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "confidence": {
+      "$ref": "#/$defs/prob"
+    },
+    "contract": {
+      "const": "SubgoalProposal/1"
+    },
+    "heading_ep": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "kind": {
+      "enum": [
+        "waypoint",
+        "heading",
+        "explore_frontier",
+        "look_around",
+        "stop_here",
+        "stop_at"
+      ]
+    },
+    "rationale": {
+      "maxLength": 400,
+      "type": "string"
+    },
+    "social": {
+      "anyOf": [
+        {
+          "properties": {
+            "min_person_clearance_m": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "prefer_side": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "left",
+                    "right"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "source": {
+      "properties": {
+        "policy": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy",
+        "version"
+      ],
+      "type": "object"
+    },
+    "stop_belief": {
+      "anyOf": [
+        {
+          "properties": {
+            "cov_xy": {
+              "anyOf": [
+                {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "goal_ep": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/vec3"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "p_within_3m_here": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/prob"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "samples_ep": {
+              "items": {
+                "$ref": "#/$defs/vec3"
+              },
+              "type": "array"
+            }
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sweep": {
+      "anyOf": [
+        {
+          "properties": {
+            "direction": {
+              "enum": [
+                "left",
+                "right"
+              ]
+            },
+            "n_turns": {
+              "maximum": 24,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "pitch_deg": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "n_turns",
+            "direction"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "t": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "target_ep": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/vec3"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tolerance_m": {
+      "minimum": 0,
+      "type": "number"
+    },
+    "valid_for_steps": {
+      "maximum": 500,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "waypoint_hints_ep": {
+      "items": {
+        "$ref": "#/$defs/vec3"
+      },
+      "maxItems": 16,
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract",
+    "t",
+    "source",
+    "kind",
+    "valid_for_steps",
+    "confidence"
+  ],
+  "title": "SubgoalProposal/1: what a policy asks the safety executor to do next (Track A). Owner W2 (consumer), producers W4/W5. Policies never emit MOVE_FORWARD directly. stop_* kinds hand the goal belief to the executor, which picks the exact STOP point (max P(within 3 m), reachable, clearance-safe) and issues STOP.",
+  "type": "object"
+}

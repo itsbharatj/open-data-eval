@@ -1,0 +1,46 @@
+{
+  "agent_fp": "5555555555555555555555555555555555555555555555555555555555555555",
+  "approved_by": "human:2026-11-05T09:12Z",
+  "codabench_submission_id": null,
+  "contract": "SubmissionRecord/1",
+  "delta_vs_predicted": null,
+  "flags": {
+    "cross_episode_memory": false,
+    "multi_rollout": false,
+    "siblings": false
+  },
+  "gates": {
+    "G1_contract": true,
+    "G2_compliance": true,
+    "G3_timing": true,
+    "G4_ledger": true,
+    "G5_new_sha": true,
+    "G6_human": true,
+    "G7_regenerated": true
+  },
+  "inputs_used": [
+    "rgb",
+    "depth",
+    "pose",
+    "instruction",
+    "episode_id",
+    "start_pose"
+  ],
+  "manifest_sha256": null,
+  "mode": "compliant",
+  "official": null,
+  "phase": "phase2",
+  "predicted_envelope": {
+    "Score": [
+      27.0,
+      31.5
+    ]
+  },
+  "rationale": "G5 candidate: zero-shot SimpleVLN + guard",
+  "release_tag": "rc-20261105-1",
+  "run_ids": [
+    "01JB9..."
+  ],
+  "uploaded_utc": "2026-11-05T09:40:00Z",
+  "zip_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+}

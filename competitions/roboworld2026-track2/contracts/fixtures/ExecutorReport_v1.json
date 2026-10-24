@@ -1,0 +1,16 @@
+{
+  "actions_emitted": [
+    "TURN_LEFT",
+    "MOVE_FORWARD",
+    "MOVE_FORWARD"
+  ],
+  "actions_remaining": 454,
+  "actions_used": 46,
+  "contacts_detected": 0,
+  "contract": "ExecutorReport/1",
+  "min_clearance_m": 0.31,
+  "proposal_t": 40,
+  "status": "progressing",
+  "stop_point_ep": null,
+  "t": 46
+}

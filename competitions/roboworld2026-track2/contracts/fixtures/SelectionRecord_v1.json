@@ -1,0 +1,22 @@
+{
+  "candidates": [
+    {
+      "contacts_detected": 0,
+      "rollout_id": "r0",
+      "stop_cluster": null,
+      "verifier_score": 0.61
+    }
+  ],
+  "chosen_rollout_id": "r0",
+  "contract": "SelectionRecord/1",
+  "episode_id": "17",
+  "margin": null,
+  "method": {
+    "flags": {
+      "multi_rollout": false,
+      "siblings": false
+    },
+    "name": "lockstep-vote",
+    "version": "0.1"
+  }
+}

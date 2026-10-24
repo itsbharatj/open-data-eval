@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "action": {
+      "enum": [
+        "STOP",
+        "MOVE_FORWARD",
+        "TURN_LEFT",
+        "TURN_RIGHT",
+        "LOOK_UP",
+        "LOOK_DOWN"
+      ]
+    },
+    "episode_id": {
+      "pattern": "^[0-9]+$",
+      "type": "string"
+    },
+    "eval_set": {
+      "description": "names = keys of data/val_unseen_splits.json (smoke 60, quick 306, dev 1,413, lockbox 426) + C10 fixtures (g60, ha-mini)",
+      "pattern": "^(smoke|quick|dev|lockbox|val_unseen|val_seen|trainho|g60|ha-mini|test|syn-[a-z0-9-]+)(@v[0-9]+)?$",
+      "type": "string"
+    },
+    "input_kind": {
+      "enum": [
+        "rgb",
+        "depth",
+        "pose",
+        "instruction",
+        "episode_id",
+        "start_pose",
+        "siblings",
+        "navmesh",
+        "humans_gt",
+        "goal_gt",
+        "scene_mesh",
+        "test_scan_assets",
+        "collision_flag"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "compliant",
+        "privileged"
+      ]
+    },
+    "prob": {
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "quat_xyzw": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "type": "array"
+    },
+    "regime": {
+      "description": "C1 R0 wall=official wall-clock; R1 wallx:<s/step> throttled; R2 frz:<k> frozen at frame k; R3 sps:<S> deterministic schedule at S steps/s (C6 virtual clock dhat=5 ms == sps:200); R4 allf = all-frames kinematic certificate; C6 extras: lock (step-locked), stall:<k>, rand:<seed> (random monotone schedule); static = no humans",
+      "pattern": "^(wall|wallx:[0-9.]+|frz:([0-9]|[1-9][0-9]|1[01][0-9])|sps:[0-9]+|allf|lock|stall:([0-9]|[1-9][0-9]|1[01][0-9])|rand:[0-9]+|static)$",
+      "type": "string"
+    },
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "val_seen",
+        "val_unseen",
+        "test",
+        "synthetic"
+      ]
+    },
+    "task_id": {
+      "pattern": "^(W[0-8]|INT|REV|OPS)-T[0-9]{2,3}$",
+      "type": "string"
+    },
+    "utc": {
+      "pattern": "^20[0-9]{2}-[01][0-9]-[0-3][0-9]T[0-2][0-9]:[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?Z$",
+      "type": "string"
+    },
+    "vec3": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "type": "array"
+    }
+  },
+  "$id": "havln-team/contracts/GoalCandidates/1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidates": {
+      "items": {
+        "properties": {
+          "cand_id": {
+            "type": "string"
+          },
+          "euclid_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "features": {
+            "additionalProperties": {
+              "type": [
+                "number",
+                "string",
+                "boolean",
+                "null"
+              ]
+            },
+            "type": "object"
+          },
+          "floor_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "geodesic_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "goal_world": {
+            "$ref": "#/$defs/vec3"
+          },
+          "rank": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "score": {
+            "type": "number"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "viewpoint_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "cand_id",
+          "goal_world",
+          "score",
+          "rank"
+        ],
+        "type": "object"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "contract": {
+      "const": "GoalCandidates/1"
+    },
+    "episode_id": {
+      "$ref": "#/$defs/episode_id"
+    },
+    "fusion": {
+      "properties": {
+        "method": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "method",
+        "version"
+      ],
+      "type": "object"
+    },
+    "scan": {
+      "type": "string"
+    },
+    "stop_point": {
+      "anyOf": [
+        {
+          "properties": {
+            "p_within_3m": {
+              "$ref": "#/$defs/prob"
+            },
+            "position_world": {
+              "$ref": "#/$defs/vec3"
+            }
+          },
+          "required": [
+            "position_world",
+            "p_within_3m"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "trajectory_key": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "contract",
+    "episode_id",
+    "scan",
+    "candidates",
+    "fusion"
+  ],
+  "title": "GoalCandidates/1 (PRIVILEGED, oracle/ only): episode -> ranked candidate goals for Track B / oracle analysis. Owner W7.",
+  "type": "object"
+}

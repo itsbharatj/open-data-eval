@@ -1,0 +1,38 @@
+{
+  "blocks": [
+    "W4-T05"
+  ],
+  "compute_quota": {
+    "gpu_h": 50,
+    "llm_usd": 0,
+    "replay_shards_in_flight": 32
+  },
+  "contract": "TaskBrief/1",
+  "contracts_in": [
+    "Observation/1",
+    "SubgoalProposal/1"
+  ],
+  "contracts_out": [
+    "ExecutorReport/1"
+  ],
+  "created": "2026-10-25",
+  "depends_on": [
+    "W1-T03",
+    "W2-T01"
+  ],
+  "due": "2026-10-27",
+  "eval_sets": [
+    "syn-corridors",
+    "smoke",
+    "dev"
+  ],
+  "id": "W2-T03",
+  "kill_criterion": "if contacts on SMOKE > 0 after 2 iterations, escalate to W2 lead",
+  "owner_session": null,
+  "regime": "A",
+  "role": "implementer",
+  "status": "ready",
+  "timebox_agent_days": 1.5,
+  "title": "Per-step forward guard with pose-delta post-check",
+  "workstream": "W2"
+}

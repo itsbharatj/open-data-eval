@@ -1,6 +1,6 @@
 # RoboWorld 2026 Track 2 (HA-VLN 2.0) — winning strategy
 
-Version 1.2 · 2026-10-24 (night) · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
+Version 1.3 · 2026-10-24 (night, after adversarial review) · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
 Companion files: `00-competition-facts.md` (verified facts), `research/` (agent findings), `briefs/` (hand-off briefs per workstream),
 `havln_tools/` (scorer, contract validator, grouping; 13 passing tests), `benchmarks/score_landscape.md`.
 
@@ -11,8 +11,8 @@ Companion files: `00-competition-facts.md` (verified facts), `research/` (agent 
 1. **The score is a product of two things we control separately.** `Score = 100 · Nav · (0.70 + 0.30 · Social)`.
    `Social = 1` exactly when the tape has **zero** navmesh contacts (walls *and* humans both count — verified in code; the CMA
    baseline loses ~15 steps per episode to wall-sliding and ends at Score 12.9). `Nav = 0.8·SR + 0.2·3/(3+NE)` and
-   `SR` requires stopping within 3 m **Euclidean** *and* zero contacts. One SR percentage point is worth 0.8 Score; 0.1 m of NE
-   is worth about 0.2–0.3; every 0.01 of collision rate costs about 0.2. **Collision-free execution is a 30 % multiplier and a
+   `SR` requires STOP within 3 m **Euclidean** (strict) *and* zero contacts. At zero collisions Score = 80·SR + 60/(3+NE): one SR
+   percentage point is worth exactly 0.8 Score; 0.1 m of NE is worth ≈ 0.10–0.13 at NE 4–5 m; each 0.01 of collision rate costs ≈ 0.2. **Collision-free execution is a 30 % multiplier and a
    precondition for every success**, so it is engineered first and verified exhaustively.
 
 2. **Scoring is offline replay of an action tape, so all computation happens on our machines.** The agent can think for minutes
@@ -28,25 +28,31 @@ Companion files: `00-competition-facts.md` (verified facts), `research/` (agent 
    placements, GT goals) is used only for training data, local evaluation, and aggregate regression testing.
 
 4. **Within the compliant regime we still hold three decisive advantages:**
-   - *Unlimited test-time compute.* Many rollouts per episode (seeds, prompts, model variants), frontier-VLM reasoning per step,
-     and selection by **self-consistency** of stop positions plus **GPS-detected contact** (position delta < 0.25 m after a
-     MOVE_FORWARD means the step was filtered → a collision happened; GPS is explicitly allowed). No GT is needed for selection.
+   - *Unlimited per-step compute inside one run.* Frontier/open VLM reasoning per step, several model samples at the **same** state,
+     per-step ensembles, a stop verifier that can send the agent back to a better visited node, and in-budget physical look-ahead to a
+     runner-up endpoint. Every observation is paid for by actions in the submitted tape. Multi-rollout selection is a **gray lever**
+     (flag OFF; organizer issue item 4); contact information from discarded runs is **never** a selection signal (C3 T04(d)).
    - *A depth+pose occupancy map makes zero collisions achievable.* The agent is a 0.1 m cylinder; the navmesh is already eroded
      by 0.10 m; humans are static-ish meshes visible in depth (median movement 0.03 m, p90 0.8 m). A local 5 cm grid with
      0.25–0.35 m inflation (0.6 m around detected people), heading alignment before straight runs, and a per-step forward check
      removes the wall-hugging that destroys learned agents. Published analysis: 38–57 % of "successful" R2R-CE episodes contain
-     wall contact; a training-free collision guard recovers 7–29 SR points under blocking.
+     wall contact; a training-free collision guard recovers +4–12 SR in the sliding regime the challenge uses (7–29 under blocking).
    - *Structure of the test set.* Test episodes 3k+1..3k+3 are the three instructions of ONE trajectory (verified from the
      public collision baseline file: identical values in 1,136/1,136 blocks; same start pose). The discrete `R2R_test.json`
      (1,391 paths, start viewpoint + heading + 3 original 29-word instructions) is public and already in the HA-VLN repo.
      Using the sibling instructions jointly is a test-*input* trick, not a GT leak; we will ask the organizers and run it only
      if allowed (expected gain: several SR points).
 
-5. **Expected outcome.** (Clean configuration ≈ Score 40–50; with the gray levers approved ≈ 50–65.) Published HA-VLN-CE state of the art is SR 0.17–0.24 (BEVBert/ETPNav retrained, HCSG May 2026); the
-   baseline is 0.129 / Score 12.9. A compliant agent built as below targets **SR 0.50–0.65, NE 2–3 m, CR≈TCR≈0 → Score 50–65**,
-   which would be first by a wide margin unless another team fields an offline privileged planner (Score 75–90). That risk is
-   covered by (a) getting the clarification merged/confirmed publicly (we ask, in writing, today), and (b) keeping a privileged
-   planner ready as the **only-if-explicitly-allowed** Track B. Headroom check: an oracle-goal, zero-collision tape scores ~95.
+5. **Expected outcome (after adversarial review, `research/V1*`, `V3*`).** Published HA-VLN-CE state of the art is SR 0.17–0.24
+   (BEVBert/ETPNav retrained; HCSG May 2026 ≈ Score 22); the baseline is 0.129 / 12.9. The best *measured* zero-contact analogue is
+   ETP-R1 + depth guard at 50.1 % collision-free success on human-free R2R-CE (≈ Score 43). Our **clean configuration** (single run,
+   compliant) therefore has an *expected* Score of ≈ 33–48 (central ≈ 42) and a *target* of 46–55; failures stop a median 7–9 m from
+   the goal, so realistic NE is 4–5 m and at zero collisions Score = 80·SR + 60/(3+NE). The gray multi-rollout lever would add ≈ +6–10
+   on the same basis if the organizers allow it. Risk-adjusted for Matterport3D arrival scenarios the expectation drops to ≈ 34.
+   Win probability against the field is ≈ 55–70 % (a frontier-VLM-plus-shield rival ≈ 47 and a multi-rollout rival ≈ 52 overlap our
+   range); it rises sharply if the organizers confirm the rules publicly, because that removes the privileged-planner rival (Score 75–90).
+   Headroom check: an oracle-goal, zero-collision tape scores ~95. Open input: whether SimpleVLN's 76.7 is a single-run mean or pass@4
+   (its launcher defaults to 4 trials) — verify on day 1.
 
 ---
 
@@ -71,7 +77,7 @@ forward RGB-D. Everything else is forbidden *at inference* but allowed for train
 
 **Track B — Privileged offline planner (shadow track).** Full scene mesh/navmesh, human placements, exhaustive candidate-goal
 search over the MP3D connectivity graph with discrete-VLN proposers (ScaleVLN/SRDF reach 80–85 SR on R2R test), VLM reranking,
-collision-free planning and kinematic verification. Expected Score 75–90. **Submit only if the organizers explicitly permit
+collision-free planning and kinematic verification. Expected Score 75–90 (all other ranges in older sections are superseded by this one). **Submit only if the organizers explicitly permit
 map/human-privileged offline planning in writing.** Otherwise Track B is used as (i) the oracle upper bound and failure
 analysis for Track A, (ii) the expert for DAgger data, (iii) the regression harness.
 
@@ -125,7 +131,7 @@ RGB-D + pose ──► Perception: depth → local occupancy (5 cm), person dete
                  Safety executor: plan on inflated occupancy grid → 15°-quantised headings → per-step forward check;
                  never issue a MOVE_FORWARD whose 0.25 m segment is within margin of an obstacle; GPS post-check
                                                           │
-                 K rollouts per episode (seeds/prompts/models) → self-consistency + contact-free selection → tape
+                 W5-S lockstep ensemble + stop verifier (single run) → tape   [W5-M multi-rollout: flag rollouts_k, OFF]
                                                           │
                  havln_tools contract validation → ZIP → (local replay for aggregate metrics only) → CodaBench
 ```
@@ -166,7 +172,7 @@ Measured on vln-safe's logs (same physics as our scorer, human-free R2R-CE val_u
 (raw 64.6), StreamVLN 34.4, ETPNav 34.0, OmniNav 29.1, CMA 17.8; a training-free depth guard lifts ETP-R1 to 50.1; a
 navmesh-oracle guard reaches 61.3 but **is privileged at inference** → replace it with **Guard v2**: a depth+GPS occupancy map,
 a learned step-collision predictor trained on navmesh labels from train scans, a person keep-out zone, and an A* escape when a
-step is vetoed. Taking the first contact-free run among three guarded agents gives 62.4 % collision-free SR (`research/C8*`).
+step is vetoed. Taking the first contact-free run among three guarded agents gives 62.4 % collision-free SR (`research/C8*`) — this uses contact-based selection across runs, which is prohibited; quoted only as an upper bound.
 **At least one of ETP-R1 / StreamVLN / OmniNav stops within 3 m in 87 % of episodes** while the best single agent manages 67.5 %
 → diversity plus selection is where SR comes from, but *selection across rollouts is a gray lever* (see §2).
 Instruction handling: HA-R2R text is ~140–170 word-pieces; ETPNav truncates at 80 and ETP-R1 at 150 (the stop clause is lost) —
@@ -187,8 +193,10 @@ Training (allowed): DAgger/IL on the 10,819 HA-R2R train episodes with a **privi
 inflated navmesh with humans inserted) so the policy learns human avoidance from supervision; RL fine-tuning with reward
 = success ∧ zero contacts (SimpleVLN showed +7–10 SR from RL on R2R-CE). Val splits are evaluation-only.
 
-Test-time compute (allowed): K = 8–32 rollouts per episode; cluster stop positions; prefer clusters with contact-free tapes;
-tie-break by a learned success verifier trained on train-split rollouts (inputs: the agent's own observations and the instruction).
+Test-time compute (allowed, single run): stop verifier + return-to-best-visited-node; per-step logit/sub-goal ensemble of 3–5
+snapshots; instruction-side TTA on the episode's own instruction; uncertainty-gated physical visit of the runner-up endpoint (≤ 15 m
+extra, ≥ 100 actions left). Gray (flag `rollouts_k`, OFF): K = 8–32 independent rollouts with stop-cluster + verifier selection.
+Contact information is never a feature. Specification: `briefs/W5-*`.
 
 ---
 
@@ -219,13 +227,51 @@ material is usable at inference under the Oct-14 rules** — it is for Track B a
 | W2 | Safety executor | Depth+pose occupancy planner with per-step guard (Oct 28) | Compliant executor given the GT goal point on val_unseen: SR ≥ 0.90 → 0.94, contact episodes ≤ 1 % under 9 human-timing regimes (privileged teacher: SR ≥ 0.97, zero contacts on all 121 navmeshes) |
 | W3 | Perception & grounding | Person/room/object tagging; instruction parser; landmark program (Oct 29) | Human-mention → detected-person matching ≥ 0.8 on val_unseen |
 | W4 | Policies | SimpleVLN client + Guard v2 (Nov 2); ETP-R1 port with turn-in-place sweeps (Nov 5); DAgger data (Nov 3) | Closed-loop K=1 val_unseen clean SR ≥ 0.40 by Nov 9, ≥ 0.46 by Nov 16, ≥ 0.50 at freeze |
-| W5 | Test-time compute & selection | Per-decision voting + stop check (allowed); K-rollout harness behind a flag (gray) (Nov 8) | +3–5 SR from allowed levers; K>1 gains measured and reported separately |
-| W6 | Verification & submission | Contract validator (done), 4-regime replay, submission ledger (Oct 27) | Every candidate ZIP: PASS + TCR 0 on all regimes |
+| W5 | Test-time compute & selection | W5-S single-run levers (stop verifier, per-step ensemble, instruction TTA, gated look-ahead) (Nov 8); W5-M behind flag `rollouts_k` | W5-S: ≥ +3 SR paired on DEV; W5-M gains reported separately and never shipped without a written YES |
+| W6 | Verification & submission | Contract validator (done), CERT-9 replay on val, submission ledger (Oct 27) | Every candidate: contract PASS, regenerable with identical sha256, DEV run passes the CERT-9 gate (W1). Test ZIPs are never gated on locally computed collisions |
 | W7 | Track B shadow + report | Candidate-goal enumerator, proposers, oracle analysis; technical report skeleton (Nov 6) | Oracle numbers feed W4/W5 error analysis; all calibrators/verifiers fitted on scan-disjoint TRAIN folds (never val); report draft by Nov 25 |
 
-Parallelism: W0–W3 and W7 start now (no MP3D needed for most of W3/W7 code); W1 unblocks W2/W4/W6 once MP3D arrives (fallback:
-start the executor on the public connectivity graphs + synthetic box scenes). Suggested agent count: 2–3 per workstream, with one
-integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominates (see `research/C5*`).
+**Dependency graph** ("needs" blocks; every brief repeats its own row). Day-1 tasks need no Matterport3D: bring-up runs on the public
+Habitat example scene `17DRP5sb8fy` (10 annotated humans; in train/val_seen) and on synthetic scenes.
+
+| Task | Needs | Unblocks | Day-1? |
+|---|---|---|---|
+| INT-T00 repo, CI, `contracts/`, eval sets, registry (0.5 d) | — | every cross-WS merge | yes, first |
+| W0 issue/email/Discord, MP3D ×3, registration [HUMAN] | — | compliance flags; MP3D tasks | yes |
+| W1-T01 image forensics → `facts.yaml` (camera height, tilt, depth range, measurements, CR per digest, frame timing) | image pull | W2 constants, W6 scorer parity | yes |
+| W1-T03 closed-loop runner + compliant sandbox on `17DRP5sb8fy` | image, INT-T00 | W3-T02, W4-T01/T02, W2 closed-loop tests | yes |
+| W2-T01/T02 mapper, planner, guard on synthetic scenes (C10 U14–U16) | INT-T00 | W2 oracle-goal harness | yes |
+| W3-T01 parser on HA-R2R train/val text | HF data | W4 program input | yes |
+| W4 SimpleVLN vLLM server + client against the runner stub; ETP-R1 code port | weights; W1-T03 for real frames | bake-off (Nov 3) | yes |
+| W6-T01 STOP-only ZIPs + predicted Scores from HA-R2R val files | HF data | Phase-1 calibration (M3) | yes |
+| W7-T01 report skeleton; Track B candidate enumerator on public graphs (val only) | — | oracle analysis | yes |
+| W1-T04 navmesh cache, CMA reproduction (M2/M3), planning service | **MP3D** | W2 harness, W4 teacher, CERT replay | no |
+| W2 oracle-goal harness on val_unseen (DoD SR ≥ 0.90) | MP3D, W1-T04 | W4 integration | no |
+| W3 detector training on train-scan renders; `.house` end-region eval | MP3D | W2 people layer | no |
+| W4-T03 privileged teacher + DAgger/SFT data; all fine-tuning | MP3D, W1-T04 | G6 | no |
+| W5-S verifier training | W4 rollouts on train | G7 | no |
+| Phase-2 bundle ingestion (A1 validation script; C10 S17) | bundle (Oct 30) | test navmesh cache, first genuine test run (G5) | no |
+| W5-M, sibling_fusion, camera_cfg, Track B submission | written organizer YES | — | no |
+
+**MP3D signer (decide within 4 h, `research/V3*`).** The Matterport3D licence is academic-only and must be signed by someone at an
+institution; the team's contact address is not institutional. Name the signer(s) today; without a licence the compliant track cannot run
+at all. Probability that MP3D arrives by Oct 27 is judged ≈ 0.4; risk-adjusted M2 ≈ Nov 1 (P80 Nov 11).
+
+**MP3D-late rule.** Express every MP3D-dependent date as `D_MP3D + n` (M2 = +1, M3 = +3 days). Until MP3D arrives, all closed-loop
+work runs on `17DRP5sb8fy` and synthetic scenes. If there is no MP3D by Nov 7, escalate to the organizers (every team needs it). Do
+**not** switch to graph-based planning on test scans: that uses prohibited inputs.
+
+**Minimum viable submissions (`research/V3*`).** MVS-0 (no MP3D): the STOP-only test ZIP on Oct 30/31. MVS-1 (if MP3D by Nov 6):
+SimpleVLN + Guard v1, contact escape, STOP by action 490, single run, official 224×224 camera, DEV SR ≥ 0.18 (Score ≈ 19–28), uploaded
+by Nov 10. Everything else is improvement on top of a scored entry. Day-1 parity test: SimpleVLN was measured at 640×480 in Habitat
+0.3.3; the official camera is 224×224 square — measure the zero-shot drop before planning on its headline number (expect 0.15–0.30 SR).
+
+**Ownership (one named owner each, assigned on day 0):** closed-loop runner + sandbox (W1); Guard v2 (W2); privileged teacher planner
+(W2, in `oracle/`); person detector (W3); vLLM serving (W4); stop verifier (W5); Phase-2 bundle ingest (W1); leak disclosure and MP3D
+signer (W0 human lead); integrator (contracts, merge queue, nightly release candidate, gate packets).
+
+Parallelism: 2–3 agents per workstream plus one integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominates
+(`research/C5*`).
 
 ---
 
@@ -240,8 +286,8 @@ integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominat
 | Oct 30 | M4 | Phase 2 bundle inventoried (human placements? trajectory_id?); test navmesh cache built; submission #1 (STOP-only anchor) |
 | Nov 2–6 | G5 | Zero-shot SimpleVLN + training-free guard on test (SR 0.28–0.36, Score 25–32); Track B oracle numbers on val_unseen |
 | Nov 9–13 | G6 | + learned Guard v2 and HA-R2R fine-tune (SR 0.40–0.47, Score 36–43) |
-| Nov 16–20 | G7 | + DAgger, per-decision voting, stop check (SR 0.46–0.54, Score 42–50); freeze Nov 20; final K=1 target SR 0.50–0.60 → Score 46–55 (60–66 if K>1 is allowed) |
-| Nov 27 | G8 | Final candidate uploaded and scored; 3-day buffer for CodaBench outages; no new experiments after. Treat the close as **Nov 30 15:59 UTC** until the live site says otherwise |
+| Nov 16–20 | G7 | + DAgger, W5-S levers (SR 0.46–0.54, Score 42–50); freeze Nov 20; final K=1 target Score 46–55 (expected 33–48); K>1 adds ≈ +6–10 only with a written YES |
+| Nov 25 | G8 | Final candidate uploaded and scored (moved earlier after the feasibility review); 3-day buffer for CodaBench outages; no new experiments after. Treat the close as **Nov 30 15:59 UTC** until the live site says otherwise |
 | Dec 1–8 | — | Technical report, reproducibility pack, code for verification |
 
 Submission budget (`research/A12*`): 100 per phase and 5 per UTC day, counted **per user account** → one submitting account per
@@ -252,19 +298,11 @@ PR #2's spirit and the technical report, and is worth only +2–8 SR (`research/
 
 ---
 
-## 7. Questions to the organizers (file today as one GitHub issue + Discord post + email)
+## 7. Questions to the organizers
 
-1. Is the Oct-14 clarification (single forward RGB-D camera, GPS+compass allowed, no `human_motion.json` at inference) the
-   binding rule set for Phase 2? Will it be merged into the README?
-2. May an agent use the three instructions that share a start pose jointly, and the public R2R test instructions?
-3. Will the Phase 2 bundle include human placements for the 18 test scans (required to simulate humans locally) and
-   `trajectory_id`? Is `collision_num_test.json` the scoring baseline?
-4. Is offline computation of tapes with full scene geometry (navmesh planning) permitted, or must planning use only perceived
-   geometry? (This decides Track B.)
-5. Given the CodaBench outage since Oct 21: will Phase 1/2 dates shift, and is there an alternate submission channel? Exact
-   Phase 2 close time (UTC)?
-6. May the single forward camera's resolution/FOV be changed, and may the agent keep memory across episodes of the same building?
-7. May `collision_num_test.json` (public) be read at inference? (It encodes a human at the start/goal viewpoint for 237 episodes.)
+The ready-to-post GitHub issue (items 1–13), the Discord mirror and the private email (incl. the test-path leak disclosure) are in
+`03-organizer-questions.md`; post them today (W0). Mapping from the earlier numbering used elsewhere in this document: old Q1 →
+preamble; Q2 → items 6, 7; Q3 → 11; Q4 → 1; Q5 → 12; Q6 → 2, 5; Q7 → private email.
 
 ---
 

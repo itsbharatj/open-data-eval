@@ -1,0 +1,49 @@
+{
+  "confidence": 0.7,
+  "contract": "SubgoalProposal/1",
+  "kind": "stop_at",
+  "rationale": "bedroom with bed visible ahead; end-slot human matched",
+  "social": {
+    "min_person_clearance_m": 0.6,
+    "prefer_side": null
+  },
+  "source": {
+    "policy": "navgpt3-8b",
+    "version": "ft-hA-r2r-0.2"
+  },
+  "stop_belief": {
+    "cov_xy": [
+      [
+        1.2,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ]
+    ],
+    "goal_ep": [
+      9.8,
+      2.4,
+      0.0
+    ],
+    "p_within_3m_here": 0.35,
+    "samples_ep": []
+  },
+  "sweep": null,
+  "t": 40,
+  "target_ep": [
+    9.6,
+    2.1,
+    0.0
+  ],
+  "tolerance_m": 0.5,
+  "valid_for_steps": 60,
+  "waypoint_hints_ep": [
+    [
+      6.0,
+      1.0,
+      0.0
+    ]
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "actions": [
+    "TURN_LEFT",
+    "MOVE_FORWARD",
+    "STOP"
+  ],
+  "agent_fp": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "audit_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "contacts_detected": 0,
+  "contract": "RolloutRecord/1",
+  "created_utc": "2026-11-02T03:14:00Z",
+  "episode_id": "17",
+  "final_pose_ep": {
+    "position_ep": [
+      0.0,
+      0.25,
+      0.0
+    ],
+    "yaw_ep": 0.2618
+  },
+  "inputs_used": [
+    "rgb",
+    "depth",
+    "pose",
+    "instruction",
+    "episode_id",
+    "start_pose"
+  ],
+  "mode": "compliant",
+  "model_calls": {
+    "cache_hits": 0,
+    "n": 31,
+    "usd": 0.0
+  },
+  "regime_during_rollout": "wall",
+  "rollout_id": "r0",
+  "seed": 0,
+  "self_confidence": 0.6,
+  "split": "val_unseen",
+  "stop_belief": null,
+  "stopped": true,
+  "wall_s": 74.2
+}

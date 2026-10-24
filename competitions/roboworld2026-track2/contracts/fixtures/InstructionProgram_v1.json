@@ -1,0 +1,61 @@
+{
+  "confidence": 0.82,
+  "contract": "InstructionProgram/1",
+  "episode_id": "17",
+  "humans": [
+    {
+      "activity": "cleaning",
+      "mention_id": "h1",
+      "region": "hallway",
+      "role": "during",
+      "text": "a person vacuuming"
+    }
+  ],
+  "instruction_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "parser": {
+    "model": "qwen3-vl-32b@sha:...",
+    "prompt_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "version": "parser-0.3"
+  },
+  "route_only_paraphrase": "Go down the hallway into the bedroom and stop by the bed.",
+  "start_context": {
+    "facing": null,
+    "objects": [
+      "stairs"
+    ],
+    "region": "hallway"
+  },
+  "steps": [
+    {
+      "distance_hint_m": null,
+      "human_ref": "h1",
+      "idx": 0,
+      "landmark": {
+        "category": "person",
+        "text": "person vacuuming"
+      },
+      "region": "hallway",
+      "relation": "past",
+      "verb": "go"
+    },
+    {
+      "distance_hint_m": null,
+      "human_ref": null,
+      "idx": 1,
+      "landmark": {
+        "category": "bed",
+        "text": "bed"
+      },
+      "region": "bedroom",
+      "relation": "at",
+      "verb": "stop"
+    }
+  ],
+  "stop": {
+    "human_ref": null,
+    "object": "bed",
+    "region": "bedroom",
+    "relation": "near",
+    "text": "stop by the bed"
+  }
+}

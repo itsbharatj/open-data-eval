@@ -1,0 +1,16 @@
+{
+  "contract": "ScoreRequest/1",
+  "eval_set": "dev",
+  "kind": "cert",
+  "priority": "p1",
+  "regimes": [
+    "frz:0",
+    "frz:119",
+    "sps:20",
+    "allf"
+  ],
+  "requester": "W6-T02",
+  "sensors": "depth2x2",
+  "split": "val_unseen",
+  "tapes_ref": "/lake/tapes/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee.json"
+}

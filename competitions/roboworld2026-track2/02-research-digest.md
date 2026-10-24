@@ -199,5 +199,21 @@ id-block grouping fallback, strict episode_id/actions types, symlink rejection, 
 Program: L1 unit tests per PR, L2 nightly container tests (incl. sensor parity: camera height 1.25 m default vs 1.5 m assumption),
 L3 benchmarks with bands, L4 timing gate, L5 CodaBench calibration, compliance suite C1–C7; free scene 17DRP5sb8fy for bring-up.
 
-**C5 Organization** — *pending*.
+**C5 Organization.** Bootstrap ~8 h with 3 sessions (repo/CI/contracts/eval sets/registry; image forensics of both digests; organizer
+questions + MP3D), then fan out to ~16 sessions, peak 18–20 (cap 24); roles: Integrator, Reviewer/Red-team, scheduled Scribe. 16 JSON
+Schemas (exported to `contracts/`, validated by `tests/test_contracts_fixtures.py`): the executor alone emits MOVE_FORWARD/STOP and owns the
+budget (SubgoalProposal/1 is the W4→W2 contract); privileged PlanRequest/1 is token-gated. Decision throughput, not agent count, is
+the limit; tiered review/merge; UTC daily and weekly cadence aligned to gates; agent-brief template; 27-issue critique of the draft briefs
+(applied in v1.2/v1.3).
+
+## Adversarial review (applied in v1.3)
+
+**V1 Score claims.** Clean K=1 46–55 was an overstatement as an *expectation* (kept as target; expected ≈ 33–48, central ≈ 42); K>1 adds
+≈ +6–10 on the same basis; realistic failure NE 4–5 m; win probability ≈ 55–70 %, not 85 %; guard gain +4–12 in the sliding regime;
+28 internal inconsistencies fixed; SimpleVLN mean-vs-pass@4 unresolved.
+**V2 Mechanics** — *pending at time of writing*.
+**V3 Feasibility.** P(MP3D by Oct 27) ≈ 0.4; risk-adjusted expectation ≈ 34; MP3D signer must be named within 4 h; MVS-0/MVS-1
+definitions; final upload moved to Nov 25; SimpleVLN 224-px parity test; defer ETP-R1 until after MVS; ownership matrix added.
+**V4 Completeness.** Organizer package unified (items 11–13, 4(d)/(e), leak disclosure); W5 rewritten (W5-S default, W5-M flag);
+runner + sandbox owned by W1; contracts exported; CERT-9 timing vocabulary and release gate; explicit dependency graph and MP3D-late rule.
 **C4 Leaderboard-feedback math** — not run separately; B7 covers the information-theoretic estimate and the recommendation (no probing).

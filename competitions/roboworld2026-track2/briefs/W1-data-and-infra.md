@@ -30,6 +30,28 @@ DISTANCE_TO_GOAL, SUCCESS, COLLISIONS) with a pluggable human-frame scheduler: `
 `|filter_end-start|² + 1e-5 < |end-start|²`). Output per-episode CSV + `havln_tools.aggregate` Score. Shard by scan, one long-lived
 process per GPU slot; target: full 3,408-episode replay in < 30 min.
 
+**Closed-loop runner + compliant sandbox (Track A; day 1; owner W1; bring-up on the public scene `17DRP5sb8fy` before MP3D).**
+API, and nothing else: `reset(episode_id) -> EpisodeInput/1 {episode_id, split, instruction, start_pose{position, rotation_xyzw},
+budget: 500}` plus the first `Observation/1`; `step(action) -> Observation/1 {step_idx, rgb uint8[224,224,3], depth float32[256,256,1]
+(metres), gps, compass, done}`. No `get_state`/`set_state`, no PathFinder, no `trajectory_id`, no `collided` flag (unless issue item 3
+says yes), no sim handles. Isolation and audit: the env-server process alone mounts scenes, episodes, `human_motion.json` and navmesh
+caches; the agent runs in a separate container with no data mount; `sys.addaudithook` logs `open`/`listdir`/`connect`, and every
+`RolloutRecord/1` carries `inputs_used` and the audit hash; agent state is reset per episode (asserted). The human clock is pluggable
+(`gen:wall`, `gen:sps:<S>`, `gen:static`). Production mode: a full split (3,408 test episodes) with fixed seeds and a content-addressed
+LLM/VLM response cache; per-episode observation logs so any tape can be regenerated; target ≥ 2,000 resets/h/GPU with a stub agent and a
+full K=1 test pass ≤ 24 h wall. DoD: C10 C2/C4/C5 and AT-W1-7 green; a red-team test (open `human_motion.json`, import `habitat_sim`,
+read `data/test_*`) fails loudly.
+
+**Canonical human-timing ids** (used by W2, W6 and strategy §12): `wall` official wall clock; `wallx:<s>` throttled; `frz:<k>` frozen at
+frame k; `step` frame = step index; `sps:<S>` deterministic schedule at S steps/s; `stall` frame 119 from step 1; `static` no humans;
+`allf` kinematic check against all 121 navmeshes (evaluator-only). Generation clocks for local rollouts: `gen:wall`, `gen:sps:<S_est>`,
+`gen:static`. **CERT-9** = `frz:0, frz:26, frz:119, step, sps:200, sps:3, stall, static, allf`. Release gate on val (DEV, then lockbox at
+gates): contact episodes ≤ 1 % in the generation clock; flips (clean in generation, colliding in any CERT-9 regime) ≤ 0.5 %; TCR spread
+< 0.005; worst-regime Score ≥ mean − 0.5; privileged teacher: 0 flagged steps under `allf`. **Test ZIPs**: only (a) `havln_tools` and
+in-image `havln-validate` PASS, (b) regenerated from the RC tag with identical sha256, (c) agent fingerprint equals the DEV-certified
+fingerprint, (d) only if issue item 8 is answered yes, a pose-trajectory reproduction check with collision columns suppressed. No
+collision/TCR number computed on test is printed, logged or used for any decision.
+
 Planning/render service (for W2/W7 and training data): expose PathFinder (find_path, snap_point, is_navigable, try_step,
 recompute_navmesh with custom radius and optional inserted humans) and `get_observations_at(pose)` RGB-D rendering with humans at
 a chosen frame. Content-addressed cache for renders.

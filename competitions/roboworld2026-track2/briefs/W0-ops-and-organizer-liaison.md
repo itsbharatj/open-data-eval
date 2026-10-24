@@ -4,9 +4,11 @@ Goal: remove every external blocker in the first 48 hours and keep the submissio
 
 Tasks (today):
 - Register the team: https://forms.gle/P2jH3c2VoGsNNWXG8 (one account per team; note the CodaBench user that will submit).
-- File the five questions from `01-strategy.md` §7 as ONE GitHub issue on https://github.com/roboworld2026/track2/issues,
-  post the same on Discord https://discord.gg/S8s8JcxtT, and email roboworld2026@gmail.com. Ask specifically whether branch
-  `bohan/clarification-Oct14` is binding. Record answers verbatim in `research/organizer-answers.md`.
+- [HUMAN] Post the GitHub issue **verbatim** from `../03-organizer-questions.md` (items 1–13 incl. 4(d)/(e)) from the team's
+  registered GitHub account on https://github.com/roboworld2026/track2/issues; mirror it on Discord https://discord.gg/S8s8JcxtT; send the
+  private email in that file (including the `sample_room_paths.json` disclosure) to roboworld2026@gmail.com. Do not use older question
+  lists. Archive the links and every answer verbatim in `research/organizer-answers.md` within 2 h; within 24 h map each answer to an
+  ADR in `DECISIONS.md` and to a flag value in `config/compliance_flags.yaml`. An answer never switches a flag ON without a human-approved ADR.
 - Matterport3D: download the Terms of Use PDF from https://niessner.github.io/Matterport/, sign, email matterport3d@googlegroups.com
   from an institutional address; send a second request from a second affiliated person; look for an existing lab licence.
   Anecdotal latency is weeks — this is the zero-float item. Daily follow-up.

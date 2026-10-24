@@ -1,0 +1,40 @@
+{
+  "contract": "Percept/1",
+  "models": {
+    "detector": "yolo11-seg@sha:..."
+  },
+  "people": [
+    {
+      "bbox_xyxy": [
+        80,
+        40,
+        130,
+        200
+      ],
+      "caption": "person vacuuming",
+      "conf": 0.91,
+      "matched_mention_id": "h1",
+      "position_ep": [
+        3.1,
+        -0.4,
+        0.0
+      ],
+      "radius_m": 0.3,
+      "swept_radius_m": 0.6,
+      "track_id": "p0"
+    }
+  ],
+  "region_belief": {
+    "bedroom": 0.1,
+    "hallway": 0.7
+  },
+  "t": 12,
+  "tags": [
+    {
+      "conf": 0.7,
+      "kind": "room",
+      "label": "hallway",
+      "position_ep": null
+    }
+  ]
+}

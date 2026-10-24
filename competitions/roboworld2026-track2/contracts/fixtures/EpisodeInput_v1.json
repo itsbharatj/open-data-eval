@@ -1,0 +1,20 @@
+{
+  "contract": "EpisodeInput/1",
+  "episode_id": "17",
+  "instruction": "Walk past the person vacuuming in the hallway ... stop by the bed.",
+  "max_actions": 500,
+  "split": "val_unseen",
+  "start": {
+    "position_world": [
+      -1.2,
+      0.07,
+      3.4
+    ],
+    "rotation_world_xyzw": [
+      0,
+      0.7071,
+      0,
+      0.7071
+    ]
+  }
+}
