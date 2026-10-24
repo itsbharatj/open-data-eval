@@ -83,7 +83,15 @@ rerankers 73–78 test SR; instruction voting +6–7 SR; agreement of all 3 inst
 Learned rankers are near chance on left/right swaps → add explicit turn-geometry features. Estimated Track-B top-1: 85 % (88 % with
 original R2R text).
 
-**B5 Compatibility models** — *pending*.
+**B5 Compatibility models.** Goal inference offline is a ~20-way choice (median 19–20 candidates, true goal in the set 98.6 %);
+the most central candidate alone gives 48.4 % SR under the 3-D Euclidean test. Perfect reading of single cues would give: first-move
+direction 63.7 %, which HA-2.0 humans the path passes 71.7 %, both 77.7 %, room-type sequence 83–85 % (one scan). Compliant agents
+cannot tour all candidates (median 792 actions; only 16.5 % of episodes fit in 500) — they can only verify the stop among nodes in
+their own map plus 1–3 physically checked alternatives, recovering the 6–8 point "passed near vs stopped at" gap per policy.
+VLN-BERT/Airbert rankers (59 % / 69 % val path selection; 60-wordpiece cut) are cheap offline votes only. Invest first in a
+DUET-family goal/stop scorer (exposes stop score and forced-path likelihood; fine-tune with graph hard negatives, 256-wordpiece
+text and human tokens; retrain on in-sim egocentric renders for the compliant head). 68 % of GT paths pass within one node of an
+HA-2.0 human; HA-1.0 test-scan humans (4.2/scan vs 10.4) drop that oracle to 55 %. Fit fusion weights on held-out train scans only.
 
 **B6 Social navigation.** Human-free shortest paths pass within 0.5 m of a person in ~41 % of val episodes; `collision_num` = humans
 annotated at the start/goal viewpoint (89–93 %), never more; hard 1 m margins infeasible on 25–32 % of trajectories → hard
