@@ -13,14 +13,14 @@ where collisions_count = number of simulator steps whose `previous_step_collided
 flag was True (walls AND humans; humans are static navmesh obstacles) and
 collision_num is the organizer-released per-episode baseline count.
 
-Aggregates (README): SR, NE, TCR are means over ALL episodes. CR is described as the
-"collision-episode rate over human-influenced episodes" (682 / 1,593 / 2,859 episodes
-for val_seen / val_unseen / test), while the released trainer code simply averages
-CR_ep over all episodes. The published CMA row (CR .623) is consistent with the
-all-episode mean and would exceed 0.7 under the human-influenced denominator, so the
-default here is `cr_mode="all"`; `cr_mode="human_influenced"` is provided for the
-README reading. Confirm against the scorer package inside the official image
-(/opt/havln-challenge/scoring) on day 1. For a zero-collision tape both give CR = 0.
+Aggregates: SR, NE, TCR are means over ALL episodes (denominator L). CR is the number of
+episodes (counted over ALL episodes) with >= 1 adjusted collision divided by the
+human-influenced episode count beta*L = 682 / 1,593 / 2,859 (val_seen / val_unseen / test).
+This is the formula stated in the first toolkit README (track2 commit 2daf3dd) and it is the
+only formula that rebuilds all four published full-precision CMA Scores from integer counts
+(val_seen: SR 140/778, CR 425/682, TCR 10679/778 -> 16.5094500; research/A4). CR can
+therefore exceed 1. The released trainer's all-episode mean is too small by a factor beta;
+it is kept as `cr_mode="all"` for comparison with paper tables. Zero-collision tapes give CR = 0 either way.
 
 Composite (README, full precision, higher is better):
     Navigation = 0.80*SR + 0.20*3/(3+NE)
@@ -115,13 +115,13 @@ def aggregate(
     results: Iterable[EpisodeResult],
     baseline_collisions: Mapping[str, int],
     split: str = "val_unseen",
-    cr_mode: str = "all",
+    cr_mode: str = "human_influenced",
 ) -> SplitMetrics:
     """Aggregate per-episode replay outcomes into official-style split metrics.
 
     cr_mode:
-      "all"              -> CR = mean(CR_ep) over all episodes          (trainer aggregation; default)
-      "human_influenced" -> CR = sum(CR_ep) / HUMAN_INFLUENCED[split]   (README wording; may exceed 1)
+      "human_influenced" -> CR = sum(CR_ep) / HUMAN_INFLUENCED[split]   (official; reproduces published Scores; may exceed 1)
+      "all"              -> CR = mean(CR_ep) over all episodes          (released trainer aggregation; paper-table comparisons)
     """
     rows = list(results)
     n = len(rows)
@@ -141,7 +141,7 @@ def aggregate(
         denom = HUMAN_INFLUENCED.get(split)
         if denom is None:
             raise ValueError(f"unknown split {split!r} for human-influenced normalisation")
-        cr = cr_sum / denom  # not clipped: the README reading can exceed 1 if non-influenced episodes collide
+        cr = cr_sum / denom  # not clipped: can exceed 1 when non-influenced episodes also collide
     elif cr_mode == "all":
         cr = cr_sum / n
     else:

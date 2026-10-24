@@ -22,6 +22,19 @@ class ScoreFormulaTests(unittest.TestCase):
             got = composite_score(m["SR"], m["NE"], m["CR"], m["TCR"])
             self.assertAlmostEqual(got, m["Score"], delta=0.06, msg=split)
 
+    def test_official_integer_counts_reproduce_val_seen_score(self):
+        # research/A4: exact counts behind the published val_seen row (NE is only known to 3 decimals).
+        sr, cr, tcr = 140 / 778, 425 / 682, 10679 / 778
+        self.assertAlmostEqual(composite_score(sr, 6.223, cr, tcr), 16.509450, delta=0.002)
+        sr2, cr2 = 237 / 1839, 1090 / 1593
+        self.assertAlmostEqual(composite_score(sr2, 6.387, cr2, 17.536), 12.945387, delta=0.003)
+
+    def test_default_cr_mode_is_human_influenced(self):
+        rows = [EpisodeResult(str(i), distance_to_goal=1.0, collisions_count=(1 if i < 10 else 0)) for i in range(100)]
+        m = aggregate(rows, {str(i): 0 for i in range(100)}, split="val_unseen")
+        self.assertEqual(m.cr_mode, "human_influenced")
+        self.assertAlmostEqual(m.CR, 10 / 1593)
+
     def test_perfect_run_scores_100(self):
         self.assertAlmostEqual(composite_score(1.0, 0.0, 0.0, 0.0), 100.0)
 

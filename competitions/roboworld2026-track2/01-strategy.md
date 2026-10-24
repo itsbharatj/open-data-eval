@@ -1,6 +1,6 @@
 # RoboWorld 2026 Track 2 (HA-VLN 2.0) — winning strategy
 
-Version 1.0 · 2026-10-24 · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
+Version 1.1 · 2026-10-24 (evening) · 37 days to the Phase 2 deadline (Nov 30) · final ranking is decided ONLY by Phase 2 (test, 3,408 episodes).
 Companion files: `00-competition-facts.md` (verified facts), `research/` (agent findings), `briefs/` (hand-off briefs per workstream),
 `havln_tools/` (scorer, contract validator, grouping; 13 passing tests), `benchmarks/score_landscape.md`.
 
@@ -59,7 +59,7 @@ Companion files: `00-competition-facts.md` (verified facts), `research/` (agent 
 | Humans = static objects per animation frame; frame advances by wall clock (0.1 s), freezes after ~12 s; order of frames in official replay is unknowable | Whether the Phase 2 bundle ships test-scan human placements (needed by **anyone** to simulate humans locally) and `trajectory_id` |
 | TCR_ep = max(0, count − baseline); baseline file for test is public (93 % zeros) | Official scorer speed (which frames are active) — irrelevant if tapes are collision-free under all frames |
 | Success/NE are 3-D Euclidean (override in `HASimulator/measures.py`) | Exact `/opt/havln-challenge/scoring` behaviour — read it on day 1 inside the image |
-| Test = 1,136 trajectories × 3; 18 R2R test scans; R2R_test.json public | CodaBench outage (down since Oct 21) → Phase 1 calibration window may vanish |
+| Test = 1,136 trajectories × 3; 18 R2R test scans. The public R2R-CE v1-2 test file (YicongHong/Discrete-Continuous-VLN) carries the **same episode ids, scene, start pose and original 26-word instruction for all 3,408 test episodes** (ids match in all four splits incl. train's 18 gaps). Index shipped in `data/test_episode_index.json` | CodaBench outage (down since Oct 21) → Phase 1 calibration window may vanish; deadline boundary probably **Nov 30 15:59 UTC** (midnight UTC+8, per the toolkit's earlier README) |
 | Val splits contain GT goals/paths → Phase 1 leaderboard is meaningless; use it only to calibrate our local scorer | Matterport3D approval latency (anecdotally weeks) — zero-float item |
 
 ---
@@ -116,6 +116,29 @@ Design rules that fall straight out of the code reading (see `research/A2*`):
 - Budget: typical paths need 40–80 forwards; one 360° sweep costs 24 turns; plan ≤ 6 sweeps per episode and reserve 60 actions.
 - STOP must be issued (success requires it); stop at the point that maximises P(within 3 m) given the agent's goal belief.
 
+Backbone ranking for the compliant agent (evidence in `research/B2*`, `B3*`, `A6*`): (1) **NavGPT-3 8B** (Oct 2026; public
+weights; Habitat 0.1.7; exactly our 0.25 m / 15° / 0.1 m-radius action space; SR 76.9 alone and 79–81.5 with a frontier
+planner on the full R2R-CE val_unseen) — monocular, so no panorama budget; (2) **SimpleVLN Qwen3.5-9B RL** (76.7; single
+camera; vLLM-served; Habitat 0.3.3 side-env needed); (3) **ETP-R1** (65.3; 0.1.7-native; needs 12 views → an in-place sweep
+of ~28 turns per decision point, affordable ≤ 5 times per episode); (4) StreamVLN / NaVILA / OmniNav as ensemble diversity.
+Measured on vln-safe's logs (same physics as our scorer, human-free R2R-CE val_unseen): collision-free success ETP-R1 37.7
+(raw 64.6), StreamVLN 34.4, ETPNav 34.0, OmniNav 29.1, CMA 17.8; a training-free depth guard lifts ETP-R1 to 50.1 and a
+navmesh-aware guard to 61.3. **At least one of ETP-R1 / StreamVLN / OmniNav stops within 3 m in 87 % of episodes** (91.5 % with
+six agents) while the best single agent manages 67.5 % → rollout diversity plus good selection is where the SR comes from.
+Instruction handling: HA-R2R text is ~140–170 word-pieces; ETPNav truncates at 80 and ETP-R1 at 150 (the stop clause is lost) —
+raise limits or feed an LLM-condensed route-only paraphrase alongside the original.
+
+Selection evidence (`research/B4*`, `B3*`): voting across the 3 instructions of a path gave +6–7 SR for Airbert/VLN-BERT; when
+all three agree (51 % of paths) the answer is right 89.7 % of the time vs 34.8 % when none agree — agreement is the
+calibration signal that tells us where to spend frontier-VLM calls. Comparative judging (pick among candidates) beats absolute
+yes/no judging by a wide margin. A stop chosen as the most-covered candidate, without reading the instruction, already succeeds
+41.6 % of the time on the HA-VLN-1.0 val proxy (CMA: 12.9).
+
+Humans (`research/B6*`): the human-free shortest path passes within 0.5 m of a person in ~41 % of val episodes, so avoidance runs
+every episode; a hard 1 m margin is infeasible on 25–32 % of trajectories → use a hard scoring-safe inflation (0.25–0.35 m walls,
+0.6 m people) plus a *soft* 1 m proximity cost. One success is worth 0.0235 Score; an extra collision in an already-failed
+episode costs only 0.004–0.007, so when the only route passes a person, attempt it if P(contact) < ~0.8 and the goal is beyond.
+
 Training (allowed): DAgger/IL on the 10,819 HA-R2R train episodes with a **privileged collision-free expert** (planned on an
 inflated navmesh with humans inserted) so the policy learns human avoidance from supervision; RL fine-tuning with reward
 = success ∧ zero contacts (SimpleVLN showed +7–10 SR from RL on R2R-CE). Val splits are evaluation-only.
@@ -135,7 +158,11 @@ tie-break by a learned success verifier trained on train-split rollouts (inputs:
 4. VLM judge over rendered panoramas along top-k paths; fuse by rank voting; ensemble over the 3 (or 6) instructions per trajectory.
 5. Planner: swept-volume navmesh (all 120 frames of every human inserted, agent radius 0.30) → waypoints → quantised actions →
    exact kinematic replay against all 121 navmeshes (base + 120 frames) → zero flagged steps → STOP.
-Expected: goal top-1 within 3 m 0.75–0.90 → Score 75–90.
+Expected (`research/B4*`, `B3*`): goal top-1 within 3 m ≈ 85 % (78–90) from HA-R2R instructions, ≈ 88 % (83–92) if the original
+R2R instructions may be added → Score ~80–87 with zero collisions. Room type is the strongest semantic cue (matching the goal's
+room label cuts candidates ~6×; 59–71 % of paths name the goal room in at least one instruction); public room labels exist for 76 %
+of test-scan viewpoints and REVERIE object boxes for all 1,971 test viewpoints (`research/A9*`), but **none of this test-scan
+material is usable at inference under the Oct-14 rules** — it is for Track B and for training a room classifier on train scans.
 
 ---
 
@@ -170,10 +197,14 @@ integrator; beyond ~16 concurrent coding agents the merge/queue overhead dominat
 | Nov 6 | G5 | Closed-loop v1 on test (Score ≥ 35); Track B oracle numbers on val_unseen |
 | Nov 13 | G6 | v2 with fine-tuned policy + guard (Score ≥ 50) |
 | Nov 20 | G7 | Architecture freeze; test-time-compute scaling; Score ≥ 58 |
-| Nov 27 | G8 | Final candidate uploaded; 3-day buffer for CodaBench outages; no new experiments after |
+| Nov 27 | G8 | Final candidate uploaded and scored; 3-day buffer for CodaBench outages; no new experiments after. Treat the close as **Nov 30 15:59 UTC** until the live site says otherwise |
 | Dec 1–8 | — | Technical report, reproducibility pack, code for verification |
 
-Submission budget: 100 per phase, 5 per UTC day; plan 70 experimental + 30 reserve; never upload in the last 2 h of a UTC day.
+Submission budget (`research/A12*`): 100 per phase and 5 per UTC day, counted **per user account** → one submitting account per
+team; failed submissions are free, cancelled/stuck ones count (never cancel a slow job; escalate with the id); best score is
+retained automatically, ties go to the earlier upload; our own scores are visible to 10 decimals through the API. Plan ~20–30
+reproducible full-system uploads plus the STOP-only anchor; **no leaderboard probing** — it would be detectable, would break
+PR #2's spirit and the technical report, and is worth only +2–8 SR (`research/B7*`).
 
 ---
 
@@ -186,7 +217,10 @@ Submission budget: 100 per phase, 5 per UTC day; plan 70 experimental + 30 reser
    `trajectory_id`? Is `collision_num_test.json` the scoring baseline?
 4. Is offline computation of tapes with full scene geometry (navmesh planning) permitted, or must planning use only perceived
    geometry? (This decides Track B.)
-5. Given the CodaBench outage since Oct 21: will Phase 1/2 dates shift, and is there an alternate submission channel?
+5. Given the CodaBench outage since Oct 21: will Phase 1/2 dates shift, and is there an alternate submission channel? Exact
+   Phase 2 close time (UTC)?
+6. May the single forward camera's resolution/FOV be changed, and may the agent keep memory across episodes of the same building?
+7. May `collision_num_test.json` (public) be read at inference? (It encodes a human at the start/goal viewpoint for 237 episodes.)
 
 ---
 
@@ -237,3 +271,20 @@ Camera tilt for LOOK actions is 30° in the challenge config; a maintainer confi
 Rough simulation: best rival's median Score ≈ 30, P(best rival ≥ 50) ≈ 0.16. **A compliant entry at Score ≥ 52 (SR ≥ .55, CR ≤ .1)
 wins about 85 % of the time; each +0.01 SR adds ≈ 0.74 Score.** Competitor failure modes to design out: getting stuck inside
 inflation zones, STOP rejected because depth hit a background wall, instruction truncation at 256 tokens, 24-turn spins eating the budget.
+
+
+---
+
+## 11. Assets shipped in this folder (ready for the agents)
+
+| File | What it is | Source |
+|---|---|---|
+| `data/test_episode_index.json` | 3,408 rows: episode → trajectory, scan, start pose (v1-2 rotation + predicted v1-3 yaw), R2R start viewpoint, original R2R instruction; plus the 255 dropped R2R test path ids | `research/A1*` (public R2R-CE v1-2 test file + R2R_test.json) |
+| `data/test_trajectory_table.json` | per test trajectory: start viewpoint, 3 original instructions, nav-graph goal candidates (3–6 hops, 5–25.5 m) with room labels | `research/A9*` |
+| `data/mp3d_test_scan_room_labels.json` | decoded room-type labels for 1,539 test-scan panoramas (public MP3D region-classification task data) | `research/A9*` |
+| `data/collision_num_{val_seen,val_unseen,test}.json` | released per-episode collision allowances (= humans at start/goal viewpoint in 89–93 % of cases) | HA-VLN repo; `research/B6*` |
+| `benchmarks/havln_score_ref.py` | reference aggregator reproducing 16.5094500 from integer counts | `research/A4*` |
+| `havln_tools/` | Score (official CR formula), contract validator, path grouping; 15 tests | this repo |
+
+Compliance note: the test-scan assets above are **privileged at inference** under the Oct-14 rules. They serve Track B,
+oracle analysis, and the organizer questions — not the compliant agent's inference path.
