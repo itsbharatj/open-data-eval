@@ -12,6 +12,13 @@ Diff the image's habitat-lab/habitat_extensions against the public pinned source
 - Is `collision_num_test.json` referenced by the scorer?
 Write the answers to `research/image-forensics.md` with file paths and line numbers.
 
+Two live image builds exist (`research/A8-*`): the toolkit pins `sha256:e1a0544f…` (tag v0.1.0-test-5e9ec54a924c; one 6.1 GB
+layer + 10 tiny layers ≈ 49 KB) while the HA-VLN README pins `sha256:78a62cd1…` (tag `cr-domain-20261004`) = the same build plus
+one 33 KB layer, probably a change to how CR is computed. Pull BOTH digests, diff the small layers (they most likely hold the
+`havln_scoring` package), and record which CR definition each implements; ask the organizers which digest CodaBench runs. The image
+also ships `havln-score-phase1 --submission <zip> --output-dir <dir> --gpu-ids …` and `havln-check-environment` (documented in the
+toolkit README before the Oct 8 cleanup: `git show 2daf3dd:README.md`); use `havln-score-phase1` as the official-mirror scorer on val.
+
 After MP3D arrives: lay out `scene_datasets/mp3d/<scan>/<scan>.glb`; pre-warm the per-frame navmesh cache
 (`recompute_navmesh/<scan>/<scan>_<fff>.navmesh`, 120 per scan; single writer per scan, then mount read-only);
 run the CMA export (`scripts/export_cma_submission.py`) and reproduce the README table (SR .129 / Score 12.945 on val_unseen

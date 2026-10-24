@@ -54,7 +54,7 @@ Companion files: `00-competition-facts.md` (verified facts), `research/` (agent 
 
 | Fixed (verified) | Uncertain (ask organizers today; see §7) |
 |---|---|
-| Replay scoring in Habitat 0.1.7 image; six actions; 500 cap; STOP required (<500) | Whether the Oct-14 clarification is binding (it is the organizers' written intent; assume **yes**) |
+| Replay scoring in Habitat 0.1.7 image; six actions; 500 cap; STOP required (<500). Two image digests exist (toolkit `e1a0544f`, HA-VLN README `78a62cd1` = `cr-domain-20261004`, +33 KB layer) | Whether the Oct-14 clarification is binding (it is the organizers' written intent; assume **yes**) |
 | Collisions = Habitat `previous_step_collided` per step = any navmesh-filtered MOVE_FORWARD (walls + humans) | Whether sibling-instruction sharing and public R2R test instructions are permitted |
 | Humans = static objects per animation frame; frame advances by wall clock (0.1 s), freezes after ~12 s; order of frames in official replay is unknowable | Whether the Phase 2 bundle ships test-scan human placements (needed by **anyone** to simulate humans locally) and `trajectory_id` |
 | TCR_ep = max(0, count − baseline); baseline file for test is public (93 % zeros) | Official scorer speed (which frames are active) — irrelevant if tapes are collision-free under all frames |
