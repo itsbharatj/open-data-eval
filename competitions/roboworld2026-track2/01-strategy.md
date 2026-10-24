@@ -75,6 +75,11 @@ collision-free planning and kinematic verification. Expected Score 75–90. **Su
 map/human-privileged offline planning in writing.** Otherwise Track B is used as (i) the oracle upper bound and failure
 analysis for Track A, (ii) the expert for DAgger data, (iii) the regression harness.
 
+**Ground-truth leak policy.** `research/B12*` found that a public file in the original Matterport3DSimulator repository
+(`web/app/sample_room_paths.json`) contains full paths for 366 R2R test path_ids, covering 879 of the 3,408 Phase-2 episodes. That is
+test ground truth. We do not use it, every pipeline blocks it by hash, and we recommend informing the organizers privately before
+Oct 30 so the leaderboard stays meaningful (and so no rival gains 25 % of the test set for free).
+
 **Gate G-rules (by Oct 28):** written organizer answer. Default if silent: Track A only.
 
 Why the default is Track A even without an answer (from `research/B8-*`): the clarification is open **PR #2** on the official
@@ -241,6 +246,7 @@ PR #2's spirit and the technical report, and is worth only +2–8 SR (`research/
 | Instruction style (112-word LLM text) breaks pretrained policies | High | −10–30 SR | Fine-tune on HA-R2R train; LLM de-paraphrase to route-only text; ensemble both |
 | Overfitting to val_unseen | Med | Test surprise | Val scenes ≠ test scenes; hold out 3 val scans; no prompt tuning on test text |
 | Technical-report/code audit | Med | Award loss | Compliance manifest per submission; privileged tools isolated behind an `oracle` package never imported at inference |
+| Public R2R test-path leak (879 episodes) used by rivals | Med | Contaminated leaderboard | Never use it (hash-blocked); disclose privately to organizers; our report states the policy |
 
 ---
 

@@ -121,7 +121,18 @@ team. Organizers value world-model foresight, egocentric grounding, explicit hum
 executor, human-occupancy foresight model, humans-as-landmarks grounding, Score-aware stopping. Report template needs a method
 figure, ablations, a visualization; final rank depends on submitting it.
 
-**B9 Instruction linguistics**, **B10 Augmentation/ensembling**, **B11 Human-landmark grounding**, **B12 R2R test knowledge** — *pending*.
+**B12 R2R test knowledge — INTEGRITY FINDING.** `web/app/sample_room_paths.json` in the original `peteanderson80/Matterport3DSimulator`
+repo (the crowd-annotation tool's input, committed 2018) contains full start→goal paths for R2R path_ids 0–1999, i.e. **366 of the
+1,391 R2R test paths = 293 ported HA-R2R test trajectories = 879 of 3,408 Phase-2 episodes (25.8 %)**; the test instructions agree
+with those paths. Using it would be test ground truth: **we do not use it, we block the file by hash in every pipeline, and the team
+lead should tell the organizers privately before Oct 30** (it also protects us from rivals who might use it). Everything else is
+clean (heading_info.json, path.json, REVERIE/VLN-CE/FGR2R test). Other results: R2R paths are weighted shortest paths ≥ 5 m with
+4–6 edges; R2R-CE kept 81.7 % of test paths, dropping mostly floor-changing ones; goals sit at the viewpoint's floor point (median
+offset 0.11 m). Candidate filter 3–6 hops & 5–25.5 m: 100 % recall, median 25 candidates / 7 clusters; 4–6 hops & 5–20 m: 98.5 %,
+20 / 6. Instruction-free densest-candidate baseline on val_unseen: SR 0.437, NE 5.1 m (≈ Score 42 with zero collisions) — offline-only.
+1,391 test paths have 908 distinct starts; shared-start paths never share a goal.
+
+**B9 Instruction linguistics**, **B10 Augmentation/ensembling**, **B11 Human-landmark grounding** — *pending*.
 
 ## Strategy & ops
 
