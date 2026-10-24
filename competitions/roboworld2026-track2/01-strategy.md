@@ -114,6 +114,9 @@ Design rules that fall straight out of the code reading (see `research/A2*`):
 - Keep every 0.25 m forward segment ≥ 0.15–0.20 m from any perceived obstacle; stay centred in corridors; align heading before
   straight runs; treat detected people as 0.6 m radius discs (covers animation drift for >90 % of humans).
 - Budget: typical paths need 40–80 forwards; one 360° sweep costs 24 turns; plan ≤ 6 sweeps per episode and reserve 60 actions.
+- Human clock (`research/A3*`): the official fast replay most likely shows humans at early animation frames (≤ ~20), while a slow
+  local agent sees frames 110–119 (movers differ by up to 3 m). Run local rollouts on a virtual human clock matched to fast replay
+  and give detected people two-sided motion margins (0.6 m disc covers > 90 % of humans; only ~8 % of paths are timing-sensitive).
 - STOP must be issued (success requires it); stop at the point that maximises P(within 3 m) given the agent's goal belief.
 
 Backbone ranking for the compliant agent (evidence in `research/B2*`, `B3*`, `A6*`): (1) **NavGPT-3 8B** (Oct 2026; public

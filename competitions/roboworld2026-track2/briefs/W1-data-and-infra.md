@@ -24,7 +24,7 @@ After MP3D arrives: lay out `scene_datasets/mp3d/<scan>/<scan>.glb`; pre-warm th
 run the CMA export (`scripts/export_cma_submission.py`) and reproduce the README table (SR .129 / Score 12.945 on val_unseen
 within SR ±0.01, NE ±0.15, Score ±0.5).
 
-Replay scorer: same env construction as the exporter (`HAVLNCEDaggerEnv`, `TASK.SENSORS=[INSTRUCTION_SENSOR]`, measurements
+Replay scorer and rollout environment (see `research/A3-*`): expose a FrameScheduler so compliant rollouts run on a virtual human clock that matches the fast official replay (early frames), not the slow wall clock of a VLM agent. Same env construction as the exporter (`HAVLNCEDaggerEnv`, `TASK.SENSORS=[INSTRUCTION_SENSOR]`, measurements
 DISTANCE_TO_GOAL, SUCCESS, COLLISIONS) with a pluggable human-frame scheduler: `wallclock`, `frozen(k)` for k in {0, 60, 119},
 `fast`, `slow`, and `all-frames` (CPU kinematic check against all 121 navmeshes with the exact `collided` test:
 `|filter_end-start|² + 1e-5 < |end-start|²`). Output per-episode CSV + `havln_tools.aggregate` Score. Shard by scan, one long-lived

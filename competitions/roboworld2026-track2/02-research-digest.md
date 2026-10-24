@@ -18,7 +18,14 @@ re-snaps an off-navmesh agent for free. Agent 0.1 m radius / 1.5 m; navmesh erod
 per-frame navmeshes (0.2–1.6 m body band). 4–6 % of starts lie within 0.5 m of a human. Guarantee zero collisions by planning on
 an inflated (0.25–0.30 m) swept-volume mesh and verifying kinematically against all 121 navmeshes; begin with a TURN at crowded starts.
 
-**A3 Human timing** — *pending*.
+**A3 Human timing.** Frame at step k = thread ticks since reset − 1 (0.1 s ticks, only while the GIL is free; capped at 120 by the
+queue; never loops; freezes at the last applied frame). Under fast official replay (~5 ms/step) humans stay at frames ≤ ~10–20
+(a 500-action episode reaches ~26); a cold navmesh cache makes frames advance ~1 per action; any ≥ 12 s stall shows frame 119.
+Slow local agents (VLMs, CMA) see frames 110–119 — for movers, frame-10 vs frame-119 positions differ by p90 0.74 m, max 3.1 m.
+Horizontally 75 % of humans never move; 18.7 % sweep > 0.5 m, 6.3 % > 1 m; rotation never changes; blocking all 120 frames adds
+~29 % blocked area. Only 8 % of val_unseen reference paths are timing-sensitive; 31 % cross a standing human at every frame.
+Compliant consequence: run local rollouts on a **virtual human clock matched to fast replay** (early frames) and keep two-sided
+motion margins around detected people; privileged tapes are certified against all 121 navmeshes.
 
 **A4 Metrics.** CR = (#episodes with ≥1 adjusted collision over all episodes) / human-influenced count (682 / 1,593 / 2,859); SR, NE,
 TCR over all episodes. Only this formula rebuilds all four published Scores from integer counts (val_seen SR 140/778, CR 425/682,
