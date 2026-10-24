@@ -16,11 +16,14 @@ depth to the floor plane using the known camera height (1.5 m) and pose; mark ce
 floor as blocked; inflate by 0.25–0.35 m (adaptive: relax to 0.20 m only when a doorway is otherwise closed); people (from W3
 segmentation or depth blobs) get a 0.6 m radius. Unknown space is blocked until observed; use TURNs to observe before moving.
 
-Motion: plan on the grid (A*/Theta*), simplify to waypoints, quantise headings to 15° multiples, align before straight runs, and
+Motion (see `research/A5-*`): lattice A* over (position, heading) with exact step semantics (0.25 m along −Z of the quantised
+heading; θ = 2·atan2(q_y, q_w)), cost = actions + clearance penalty, every forward target checked at midpoint and endpoint; plan in
+3-D (13–24 % of episodes change floor). Even the perfect-goal shortest-path follower collides in 18–26 % of episodes by touching
+corners, so clearance is the whole game. Legacy alternative: plan on the grid (A*/Theta*), simplify to waypoints, quantise headings to 15° multiples, align before straight runs, and
 before each MOVE_FORWARD check that the full 0.25 m segment stays ≥ margin from blocked cells. After each forward, compare GPS
 delta with 0.25 m: if shorter, record a contact, back off (TURN, re-plan) — this is allowed feedback. Keep ≥ 60 actions in reserve.
 
-Stop logic: given a goal belief (point or distribution from W4/W5), stop at the reachable point maximising P(Euclidean ≤ 3 m).
+Stop logic: given a goal belief (point or distribution from W4/W5), stop at the reachable point maximising P(Euclidean ≤ 3 m); stopping between two candidates 3–5.5 m apart is worth ≈ 4–5 SR (A5). First action at a crowded start is a TURN (free re-snap); stop within 0.2 m of the chosen point.
 
 Oracle harness (eval only, in `oracle/`): run the executor towards the GT goal on val_unseen with humans rendered; target SR ≥ 0.95,
 TCR = 0 under the 4 human-timing regimes of the W1 scorer. Report failures by category (door, stairs, human-at-start, map error).

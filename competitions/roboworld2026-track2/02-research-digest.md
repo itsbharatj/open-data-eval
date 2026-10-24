@@ -25,7 +25,13 @@ TCR over all episodes. Only this formula rebuilds all four published Scores from
 TCR 10679/778 → 16.5094500). With zero collisions Score = 80·SR + 60/(3+NE). STOP-only probe predicts ≈ 8.47 (Euclidean) vs ≈ 5.04
 (geodesic) on val_unseen. `collision_num` is a 0–4 per-trajectory allowance, unreproducible from public data.
 
-**A5 Action geometry** — *pending*.
+**A5 Action geometry.** MOVE_FORWARD = 0.25 m along body −Z; yaw θ = 2·atan2(q_y, q_w), forward = (−sin θ, 0, −cos θ) (98.8 % of
+505k oracle steps match exactly). LOOK angle is 15° by Habitat default, 30° in the VLN-CE six-action RxR config — read the image's
+config. **The perfect-goal shortest-path follower itself collides in 18–26 % of episodes** (corner touching at zero clearance), so a
+clearance-aware teacher is a legitimate training upgrade. Heading quantisation limits tracking to a ±5 cm corridor (lattice A* over
+(position, heading), ~63 actions) — budget is not a constraint (oracle sequences average 55–58 actions, p99 ≈ 100). Plan in 3-D
+(13–24 % of episodes change floor). Stop by goal coverage, not commitment: stopping between two candidates 3–5.5 m apart adds
+≈ 4–5 SR; if every route needs a collision, stop short (a collision costs ≈ 0.006 Score, 5 m of distance ≈ 0.003).
 
 **A6 Learned-policy options.** The CMA config silently ignores `ckpt_to_load`; the baseline is a from-scratch 10×4 DAgger run with a
 sliding-tolerant expert; CMA-class caps at Score 20–27. Ranked options: SimpleVLN (≈37 untuned → 48 fine-tuned → 53 with RL),
